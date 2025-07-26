@@ -83,6 +83,34 @@
 6. Session summary for continuity
 ```
 
+### CRITICAL: Implementation Increment Boundaries
+**senior-engineer agents MUST follow these strict boundaries:**
+
+#### Maximum Increment Size:
+- **50-100 lines of code** per increment maximum
+- **1-3 related functions/methods** per increment
+- **Single logical change** only (one test case, one function, one bug fix)
+- **15-30 minutes of work** maximum before handoff
+
+#### Mandatory Handoff Protocol:
+1. **STOP after each increment** - never implement entire features at once
+2. **Explicitly state**: "Ready for code-reviewer handoff"  
+3. **Wait for code-reviewer approval** before continuing
+4. **Do not proceed** until explicit approval received
+
+#### Increment Examples:
+- ✅ "Add one test case for HTTP 404 error handling"
+- ✅ "Implement basic CliRunner setup and one success test"
+- ✅ "Add input validation for URL parameter"
+- ❌ "Implement comprehensive integration tests" (too large)
+- ❌ "Add all error handling scenarios" (too broad)
+- ❌ "Complete Step 4 requirements" (multiple increments)
+
+#### Enforcement:
+- If increment exceeds boundaries → code-reviewer MUST reject
+- If no handoff protocol followed → code-reviewer MUST block commit
+- Large changes MUST be split into multiple reviewed increments
+
 ## Milestone Reviews (Fresh Context)
 ```markdown
 # Participants: Full team (all agents)
@@ -106,14 +134,14 @@
 - **Single logical change**: One bug fix, one feature, one refactor per commit
 - **Bisectable**: Each commit leaves codebase in working state
 - **Self-contained**: No dependencies on future commits
-- **Reversible**: Can be cleanly revered without breaking other changes
+- **Reversible**: Can be cleanly reverted without breaking other changes
 
 ### Commit message format
 
 ```
 component: brief description (50 chars max)
 
-Detailed explanation od what and why, not how.
+Detailed explanation of what and why, not how.
 Reference issue numbers and design decisions.
 Not any breaking changes or side effects.
 
@@ -123,7 +151,7 @@ example 'Co-developed-by: Claude claude-sonnet-4'
 ```
 
 ### Pre-Commit checklist
-- [ ] Builds succesfully without warnings
+- [ ] Builds successfully without warnings
 - [ ] Existing tests pass
 - [ ] New functionality has appropriate tests
 - [ ] No unrelated changes mixed in
@@ -165,4 +193,13 @@ Level 4: "This violates fundamental principles. Please acknowledge these risks: 
 - Architectural decisions: Strong advisory authority
 - Code quality standards: Enforcement authority
 - Business decisions: User retains final authority
+
+
+# Tooling
+- The project is managed with `uv`.
+- The following tools are available for searching beyond the typical linux tools: rg, vgrep, fd, fzf, bat, and exa.
+- mypy, and ruff are available for type hinting, and linting. Use them.
+
+# Testing
+- Testing is run with pytest through uv `uv run pytest`
 
