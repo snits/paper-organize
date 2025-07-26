@@ -1,0 +1,33 @@
+[project]
+name = "paper-dl"
+version = "0.1.0"
+description = "Command-line utility for downloading academic papers with descriptive filenames"
+readme = "README.md"
+authors = [
+    { name = "Jerry Snitselaar", email = "dev@snitselaar.org" }
+]
+requires-python = ">=3.8"
+dependencies = [
+    "click>=8.0.0",
+    "requests>=2.25.0",
+    "PyPDF2>=3.0.0",
+]
+
+[project.scripts]
+paper-dl = "paperdl.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
