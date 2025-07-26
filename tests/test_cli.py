@@ -29,10 +29,11 @@ def test_cli_requires_url():
 
 
 def test_cli_with_url():
-    """Test CLI accepts URL argument."""
+    """Test CLI accepts URL argument and downloads successfully."""
     runner = CliRunner()
     result = runner.invoke(main, ["https://arxiv.org/abs/2301.00001"])
 
-    # Should succeed but show not implemented message
+    # Should show downloading message and success
     assert "Downloading: https://arxiv.org/abs/2301.00001" in result.output
-    assert "Download functionality not yet implemented" in result.output
+    assert "Downloaded to:" in result.output
+    assert result.exit_code == 0

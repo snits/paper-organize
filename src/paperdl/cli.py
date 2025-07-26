@@ -1,7 +1,13 @@
 # ABOUTME: Command-line interface for paper-dl using Click framework
 # ABOUTME: Handles argument parsing, validation, and main entry point
 
+from pathlib import Path
+from urllib.parse import urlparse
+
 import click
+
+from .download import download_file
+from .exceptions import DownloadError
 
 
 @click.command()
@@ -12,12 +18,47 @@ import click
 @click.option("--verbose", is_flag=True, help="Show detailed output")
 def main(url: str, directory: str | None, name: str | None, *, quiet: bool, verbose: bool) -> None:  # noqa: ARG001
     """Download academic papers with descriptive filenames."""
-    # TODO(claude): Use dir, name, verbose parameters when implementing full functionality
     if not quiet:
         click.echo(f"→ Downloading: {url}")
 
-    # TODO(claude): Implement actual download functionality
-    click.echo("✗ Download functionality not yet implemented")
+    try:
+        # Set up download directory
+        if directory is None:
+            download_dir = Path.home() / "papers"
+        else:
+            download_dir = Path(directory).expanduser()
+        
+        download_dir.mkdir(parents=True, exist_ok=True)
+
+        # Generate filename if not provided
+        if name is None:
+            parsed_url = urlparse(url)
+            filename = Path(parsed_url.path).name
+            if not filename or not filename.endswith('.pdf'):
+                filename = "paper.pdf"
+        else:
+            filename = name
+            if not filename.endswith('.pdf'):
+                filename += ".pdf"
+
+        # Construct full destination path
+        destination_path = download_dir / filename
+
+        # Perform download
+        success = download_file(url, str(destination_path))
+        
+        if success:
+            if not quiet:
+                click.echo(f"✓ Downloaded to: {destination_path}")
+        else:
+            raise DownloadError("Download failed")
+
+    except DownloadError as e:
+        click.echo(f"✗ Download failed: {e}", err=True)
+        raise click.Abort()
+    except Exception as e:
+        click.echo(f"✗ Unexpected error: {e}", err=True)
+        raise click.Abort()
 
 
 if __name__ == "__main__":
