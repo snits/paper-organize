@@ -1,75 +1,111 @@
 # ABOUTME: Session handoff documentation for paper-dl development
 # ABOUTME: Status summary and next steps for continuing implementation
 
-# Session Handoff: Day 4 Final Download Features
+# Session Handoff: Architectural Improvements Complete
 
 ## Current Implementation Status
 
-### ✅ Day 2 Complete - Basic Download Functionality (Committed: 0f8655cc8bb8)
-- **Basic download working**: `download_file(url, path) -> bool` function implemented and committed
-- **Real HTTP testing**: Uses httpbin.org for integration tests  
-- **Error handling**: HTTP errors, timeouts, file cleanup
-- **Type annotations**: Full mypy compliance (0 errors)
-- **Directory creation**: Automatic parent directory creation
-- **File cleanup**: Removes partial downloads on failure
+### ✅ Architectural Fix Plan Complete (Steps 1-3)
 
-### ✅ Day 3 Complete - Progress Callback Support (Committed: d7e38f77b0ae)
-- **Progress tracking**: `download_file()` now accepts optional `progress_callback` parameter
-- **Error isolation**: Progress callback failures don't break downloads (using `contextlib.suppress`)
-- **Content-Length handling**: Robust parsing with fallback to -1 for unknown sizes
-- **Comprehensive testing**: 18/18 tests passing including extensive progress callback scenarios
-- **Code quality**: All quality gates pass (tests, mypy, ruff)
-- **Atomic discipline**: Proper separation of progress feature from linting cleanup
+#### Step 1: Exception Hierarchy (Committed: 22e7e9e57850)
+- **Structured exceptions**: `PaperDLError` base class with user-friendly messaging system
+- **Specific error types**: `NetworkError`, `HTTPError`, `FileSystemError`, `ValidationError`
+- **User messaging**: All exceptions provide `user_message()` method for CLI display
+- **Debugging support**: Exception `details` dictionary for technical context
+- **Backward compatibility**: Legacy aliases (`DownloadError`, `MetadataError`, etc.)
 
-### ✅ Day 3 Complete - Linting and Style Cleanup (Committed: e5b758f44af1)
-- **Style consistency**: Standardized quotes, TODO formatting, type hints
-- **CLI improvements**: Boolean parameter positioning with `*` separator
-- **Code cleanup**: Removed unnecessary pass statements, optimized imports
-- **Zero functional changes**: Pure style/linting atomic commit
+#### Step 2: Download Function Transformation (Committed: 2cd8acd49fd2)
+- **Exception-based interface**: `download_file()` now raises exceptions instead of returning bool
+- **Information preservation**: Specific error types maintain all error context
+- **Input validation**: Comprehensive URL and path validation with structured errors
+- **Enhanced error handling**: Proper exception chaining with "from e"
+- **Content validation**: File size verification against Content-Length header
+- **Robust cleanup**: Partial file removal on any error condition
 
-### 🎯 Day 4 Session Goals
+#### Step 3: CLI Integration (Committed: 3398be44df46)
+- **Exception handling**: CLI catches and displays user-friendly error messages
+- **Structured error display**: Uses `exception.user_message()` for clean output
+- **Error hierarchy**: Specific exception types caught before base class
+- **Test coverage**: All tests updated for exception-based interface (18/18 passing)
+- **Interface consistency**: Download function and CLI properly integrated
 
-**Primary Objective**: Complete download module foundation with retry logic
+### ✅ Foundation Features Complete
+- **Basic download functionality**: HTTP downloads with comprehensive error handling
+- **Progress callback support**: Optional progress tracking with error isolation
+- **Real integration testing**: Uses httpbin.org for reliable HTTP endpoint testing
+- **Type safety**: Full mypy compliance with comprehensive type annotations
+- **Code quality**: All linting rules passing, consistent style
+- **Atomic commit discipline**: Each commit represents single logical change
 
-**Recommended next atomic increment**: 
-- **Retry logic with exponential backoff** - Network reliability for production use
-- Pre-approved by code-reviewer with clear scope and interface design
+### 🎯 Next Development Phase
 
-**Alternative**: CLI integration with progress display (requires progress bar implementation)
+**Current Priority**: Add comprehensive integration tests (Step 4)
+- **End-to-end testing**: Full CLI-to-download integration tests
+- **Real network scenarios**: Test against actual HTTP endpoints
+- **Error scenario validation**: Verify user-friendly error messages in CLI context
+
+**Subsequent Goals**:
+- **Step 5**: Retry logic with exponential backoff for production reliability
+- **Advanced features**: Content validation, metadata extraction, progress bars
 
 ## Technical Implementation Details
 
-### Working Code Structure
+### Current Code Structure
 ```python
-# src/paperdl/download.py
-def download_file(url: str, destination_path: str) -> bool:
-    """Downloads file from URL to path with error handling."""
-    # Uses pathlib.Path, requests with timeout=30
-    # Creates parent directories, streams download
-    # Cleans up partial files on failure
+# src/paperdl/download.py - Exception-based download function
+def download_file(url: str, destination_path: str, 
+                 progress_callback: Optional[Callable[[int, int], None]] = None) -> None:
+    """Downloads file from URL to path with comprehensive error handling.
+    
+    Raises:
+        ValidationError: Invalid inputs
+        NetworkError: Network/connection failures  
+        HTTPError: HTTP status errors
+        FileSystemError: File operation failures
+    """
+
+# src/paperdl/exceptions.py - Structured exception hierarchy
+class PaperDLError(Exception):
+    def user_message(self) -> str: ...
+
+class NetworkError(PaperDLError): ...
+class HTTPError(NetworkError): ...  
+class FileSystemError(PaperDLError): ...
+class ValidationError(PaperDLError): ...
+
+# src/paperdl/cli.py - Exception-aware CLI
+def main(...):
+    try:
+        download_file(url, str(destination_path))
+        click.echo(f"✓ Downloaded to: {destination_path}")
+    except ValidationError as e:
+        click.echo(f"✗ {e.user_message()}", err=True)
+    # ... other exception types
 ```
 
-### Test Coverage
-- ✅ Real HTTP download (httpbin.org/bytes/1024)
-- ✅ Mocked success/failure scenarios  
-- ✅ Network timeout handling
-- ✅ HTTP error responses (4xx/5xx)
-- ✅ Directory creation
-- ❌ Advanced features (progress, retry) removed for atomic scope
+### Test Coverage (18/18 passing)
+- ✅ Real HTTP download (httpbin.org integration)
+- ✅ Exception-based error scenarios
+- ✅ Network timeout and connection failures
+- ✅ HTTP error responses with proper exception types
+- ✅ File system errors and cleanup
+- ✅ Progress callback functionality and error isolation
+- ✅ Input validation with structured error messages
+- ✅ CLI integration with user-friendly error display
 
 ## Commands for Next Session
 
-### Quality Gate Commands
+### Quality Gate Commands (All Passing ✅)
 ```bash
-# Test suite (should pass)
+# Test suite (18/18 tests passing)
 uv run pytest
 
-# Type checking (should pass) 
+# Type checking (0 errors)
 uv run mypy src/paperdl/
 
-# Linting (76 errors to fix)
-uv run ruff check src/ tests/ --statistics
-uv run ruff check src/ tests/ --fix  # Auto-fix what's possible
+# Linting (clean)
+uv run ruff check src/ tests/
+uv run ruff format src/ tests/
 ```
 
 ### Development Commands
@@ -77,37 +113,40 @@ uv run ruff check src/ tests/ --fix  # Auto-fix what's possible
 # Install dev dependencies
 uv sync --extra dev
 
-# Run specific tests
+# Run specific test modules
 uv run pytest tests/test_download.py -v
+uv run pytest tests/test_cli.py -v
 
-# Test CLI (should show placeholder)
-uv run paper-dl https://example.com/test.pdf
+# Test CLI with exception handling
+uv run paper-dl https://httpbin.org/status/404  # Test HTTP error
+uv run paper-dl invalid-url                     # Test validation error
+uv run paper-dl https://httpbin.org/bytes/1024  # Test successful download
 ```
 
-## Atomic Commit Strategy
+## Architectural Progress Summary
 
-**Current atomic scope**: Basic HTTP download functionality only
-- Function signature: `download_file(url: str, path: str) -> bool`
-- No progress callbacks, no retry logic, no CLI integration
-- Clean, testable, single responsibility
+**Completed Architectural Improvements**:
+1. ✅ **Exception hierarchy** - Information-preserving error handling
+2. ✅ **Download transformation** - Exception-based interface replacing boolean anti-pattern  
+3. ✅ **CLI integration** - User-friendly error messages from structured exceptions
 
-**Next atomic commits** (after linting cleanup):
-1. Progress callback support
-2. Retry logic for timeouts/server errors
-3. CLI integration with download module
-4. Progress bar display
+**Next Development Priorities**:
+4. 🎯 **Integration testing** - End-to-end CLI testing with real scenarios
+5. ⏳ **Retry logic** - Network resilience with exponential backoff
 
-## Files Modified This Session
-- `src/paperdl/download.py` - Core implementation
-- `tests/test_download.py` - Test suite (removed advanced feature tests)
-- `pyproject.toml` - Added dev dependencies, ruff/mypy config
-- `docs/development.md` - Development workflow guide
-- `docs/project-structure.md` - Status updates
+## Files Modified in Architectural Improvement Phase
+- `src/paperdl/exceptions.py` - NEW: Structured exception hierarchy
+- `src/paperdl/download.py` - TRANSFORMED: Exception-based error handling
+- `src/paperdl/cli.py` - UPDATED: Exception-aware error display
+- `tests/test_download.py` - UPDATED: Exception-based test assertions
+- `docs/session-handoff.md` - UPDATED: Current status documentation
 
-## Code-Reviewer Requirements Met
-- ✅ Functionality working with real HTTP endpoints
-- ✅ All existing tests passing (no regressions)
-- ✅ Type annotations complete
-- ❌ Linting violations must be resolved before commit approval
+## Architecture Quality Gates Met ✅
+- ✅ **Information preservation**: No error context lost (vs. boolean anti-pattern)
+- ✅ **User experience**: Friendly error messages via `user_message()` method
+- ✅ **Developer experience**: Rich exception details for debugging
+- ✅ **Test coverage**: All scenarios validated with exception interface
+- ✅ **Type safety**: Full mypy compliance maintained
+- ✅ **Code quality**: All linting rules satisfied
 
-**Recommendation**: Focus next session entirely on systematic linting cleanup using ruff auto-fix + manual fixes, then get code-reviewer approval for atomic commit.
+**Status**: Ready for Step 4 (integration testing) - all architectural foundations complete.

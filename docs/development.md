@@ -15,6 +15,9 @@ uv sync --extra dev
 
 # Verify installation
 uv run paper-dl --help
+
+# Test basic functionality
+uv run paper-dl https://httpbin.org/bytes/1024 --name test.pdf
 ```
 
 ## Running Tests
@@ -55,12 +58,39 @@ uv run mypy src/paperdl/
 2. **Implement minimal code** to pass test
 3. **Run quality checks**:
    ```bash
-   uv run pytest          # All tests pass
-   uv run ruff check      # No linting errors
+   uv run pytest          # All tests pass (currently 18/18)
+   uv run ruff check      # No linting errors  
    uv run mypy src/       # No type errors
    ```
 4. **Commit atomic changes** with descriptive messages
 5. **Repeat** for next feature increment
+
+## Current Architecture
+
+### Exception-Based Error Handling
+The project uses a structured exception hierarchy instead of boolean returns:
+
+```python
+# NEW: Exception-based interface (preserves error information)
+from paperdl.download import download_file
+from paperdl.exceptions import NetworkError, HTTPError, ValidationError
+
+try:
+    download_file(url, destination_path)
+    print("✓ Download successful")
+except ValidationError as e:
+    print(f"✗ {e.user_message()}")  # User-friendly error
+except HTTPError as e:
+    print(f"✗ {e.user_message()}")  # HTTP 404, 500, etc.
+except NetworkError as e:
+    print(f"✗ {e.user_message()}")  # Timeout, connection failed
+```
+
+### Key Architecture Benefits
+- **Information preservation**: All error context maintained (vs. boolean anti-pattern)
+- **User-friendly messaging**: `exception.user_message()` for clean CLI output  
+- **Developer debugging**: Rich `exception.details` dictionary for technical context
+- **Type safety**: Specific exception types enable targeted error handling
 
 ## Project Commands Reference
 
