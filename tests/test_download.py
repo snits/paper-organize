@@ -107,7 +107,141 @@ def test_download_file_creates_directory():
             assert nested_path.parent.exists()
 
 
-# TODO(claude): Progress callback tests will be added in future atomic commit
+def test_download_file_progress_callback_with_content_length():
+    """Test progress callback with known Content-Length."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        dest_path = Path(temp_dir) / "test.pdf"
+
+        # Track progress calls
+        progress_calls = []
+
+        def progress_callback(bytes_downloaded: int, total_bytes: int) -> None:
+            progress_calls.append((bytes_downloaded, total_bytes))
+
+        with patch("paperdl.download.requests.get") as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.headers = {"content-length": "16"}  # Two 8-byte chunks
+            # Return chunks that sum to 16 bytes
+            mock_response.iter_content.return_value = [b"chunk001", b"chunk002"]
+            mock_get.return_value = mock_response
+
+            result = download_file("https://example.com/test.pdf", str(dest_path), progress_callback)
+
+            assert result is True
+            assert dest_path.exists()
+
+            # Verify progress was tracked correctly
+            assert len(progress_calls) == 2  # noqa: PLR2004
+            assert progress_calls[0] == (8, 16)  # First chunk: 8 bytes downloaded, 16 total
+            assert progress_calls[1] == (16, 16)  # Second chunk: 16 bytes downloaded, 16 total
+
+
+def test_download_file_progress_callback_without_content_length():
+    """Test progress callback when Content-Length header is missing."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        dest_path = Path(temp_dir) / "test.pdf"
+
+        # Track progress calls
+        progress_calls = []
+
+        def progress_callback(bytes_downloaded: int, total_bytes: int) -> None:
+            progress_calls.append((bytes_downloaded, total_bytes))
+
+        with patch("paperdl.download.requests.get") as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.headers = {}  # No Content-Length header
+            mock_response.iter_content.return_value = [b"data1", b"data2", b"data3"]
+            mock_get.return_value = mock_response
+
+            result = download_file("https://example.com/test.pdf", str(dest_path), progress_callback)
+
+            assert result is True
+            assert dest_path.exists()
+
+            # Verify progress was tracked with -1 for unknown total
+            assert len(progress_calls) == 3  # noqa: PLR2004
+            assert progress_calls[0] == (5, -1)   # 5 bytes downloaded, unknown total
+            assert progress_calls[1] == (10, -1)  # 10 bytes downloaded, unknown total
+            assert progress_calls[2] == (15, -1)  # 15 bytes downloaded, unknown total
+
+
+def test_download_file_progress_callback_invalid_content_length():
+    """Test progress callback when Content-Length header is invalid."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        dest_path = Path(temp_dir) / "test.pdf"
+
+        # Track progress calls
+        progress_calls = []
+
+        def progress_callback(bytes_downloaded: int, total_bytes: int) -> None:
+            progress_calls.append((bytes_downloaded, total_bytes))
+
+        with patch("paperdl.download.requests.get") as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.headers = {"content-length": "not-a-number"}  # Invalid content length
+            mock_response.iter_content.return_value = [b"testdata"]
+            mock_get.return_value = mock_response
+
+            result = download_file("https://example.com/test.pdf", str(dest_path), progress_callback)
+
+            assert result is True
+            assert dest_path.exists()
+
+            # Verify progress was tracked with -1 for invalid total
+            assert len(progress_calls) == 1
+            assert progress_calls[0] == (8, -1)  # 8 bytes downloaded, invalid total treated as unknown
+
+
+def test_download_file_no_progress_callback():
+    """Test that download works normally when no progress callback is provided."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        dest_path = Path(temp_dir) / "test.pdf"
+
+        with patch("paperdl.download.requests.get") as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.headers = {"content-length": "100"}
+            mock_response.iter_content.return_value = [b"test data"]
+            mock_get.return_value = mock_response
+
+            # Call without progress callback (None is the default)
+            result = download_file("https://example.com/test.pdf", str(dest_path))
+
+            assert result is True
+            assert dest_path.exists()
+            with dest_path.open("rb") as f:
+                assert f.read() == b"test data"
+
+
+def test_download_file_progress_callback_error_handling():
+    """Test that callback errors don't break the download."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        dest_path = Path(temp_dir) / "test.pdf"
+
+        def failing_callback(_bytes_downloaded: int, _total_bytes: int) -> None:
+            msg = "Callback failed!"
+            raise RuntimeError(msg)
+
+        with patch("paperdl.download.requests.get") as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.headers = {"content-length": "9"}
+            mock_response.iter_content.return_value = [b"test data"]
+            mock_get.return_value = mock_response
+
+            # The download should succeed despite callback failure
+            # Callback errors should not break the download
+            result = download_file("https://example.com/test.pdf", str(dest_path), failing_callback)
+
+            assert result is True
+            assert dest_path.exists()
+            # Verify file content was still written correctly
+            assert dest_path.read_bytes() == b"test data"
+
+
 # TODO(claude): Retry logic tests will be added in future atomic commit
 
 
