@@ -5,12 +5,15 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 import requests
 
 from paperdl.download import download_file
+from paperdl.exceptions import HTTPError, NetworkError
 
 # Test constants
 TEST_FILE_SIZE = 1024
+HTTP_NOT_FOUND = 404
 
 
 def test_download_file_basic_functionality():
@@ -23,8 +26,8 @@ def test_download_file_basic_functionality():
 
         result = download_file(url, str(dest_path))
 
-        # Verify download succeeded
-        assert result is True
+        # Verify download succeeded (returns None on success)
+        assert result is None
         # Verify file was created
         assert dest_path.exists()
         # Verify file has expected size (1024 bytes)
@@ -45,13 +48,13 @@ def test_download_file_success():
         with patch("paperdl.download.requests.get") as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.headers = {"content-length": "1000"}
+            mock_response.headers = {"content-length": "9"}  # Match actual data size
             mock_response.iter_content.return_value = [b"test data"]
             mock_get.return_value = mock_response
 
             result = download_file("https://example.com/test.pdf", str(dest_path))
 
-            assert result is True
+            assert result is None
             assert dest_path.exists()
             with dest_path.open("rb") as f:
                 assert f.read() == b"test data"
@@ -64,13 +67,15 @@ def test_download_file_http_error():
 
         with patch("paperdl.download.requests.get") as mock_get:
             mock_response = MagicMock()
-            mock_response.status_code = 404
-            mock_response.raise_for_status.side_effect = Exception("404 Not Found")
+            mock_response.status_code = HTTP_NOT_FOUND
+            mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("404 Not Found")
             mock_get.return_value = mock_response
 
-            result = download_file("https://example.com/missing.pdf", str(dest_path))
+            with pytest.raises(HTTPError) as exc_info:
+                download_file("https://example.com/missing.pdf", str(dest_path))
 
-            assert result is False
+            assert "HTTP request failed" in str(exc_info.value)
+            assert exc_info.value.status_code == HTTP_NOT_FOUND
             assert not dest_path.exists()
 
 
@@ -82,9 +87,10 @@ def test_download_file_network_timeout():
         with patch("paperdl.download.requests.get") as mock_get:
             mock_get.side_effect = requests.exceptions.Timeout("Connection timeout")
 
-            result = download_file("https://slow.example.com/test.pdf", str(dest_path))
+            with pytest.raises(NetworkError) as exc_info:
+                download_file("https://slow.example.com/test.pdf", str(dest_path))
 
-            assert result is False
+            assert "Request timed out" in str(exc_info.value)
             assert not dest_path.exists()
 
 
@@ -96,13 +102,13 @@ def test_download_file_creates_directory():
         with patch("paperdl.download.requests.get") as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.headers = {"content-length": "500"}
+            mock_response.headers = {"content-length": "11"}  # Match "pdf content" size
             mock_response.iter_content.return_value = [b"pdf content"]
             mock_get.return_value = mock_response
 
             result = download_file("https://example.com/test.pdf", str(nested_path))
 
-            assert result is True
+            assert result is None
             assert nested_path.exists()
             assert nested_path.parent.exists()
 
@@ -128,7 +134,7 @@ def test_download_file_progress_callback_with_content_length():
 
             result = download_file("https://example.com/test.pdf", str(dest_path), progress_callback)
 
-            assert result is True
+            assert result is None
             assert dest_path.exists()
 
             # Verify progress was tracked correctly
@@ -157,7 +163,7 @@ def test_download_file_progress_callback_without_content_length():
 
             result = download_file("https://example.com/test.pdf", str(dest_path), progress_callback)
 
-            assert result is True
+            assert result is None
             assert dest_path.exists()
 
             # Verify progress was tracked with -1 for unknown total
@@ -187,7 +193,7 @@ def test_download_file_progress_callback_invalid_content_length():
 
             result = download_file("https://example.com/test.pdf", str(dest_path), progress_callback)
 
-            assert result is True
+            assert result is None
             assert dest_path.exists()
 
             # Verify progress was tracked with -1 for invalid total
@@ -203,14 +209,14 @@ def test_download_file_no_progress_callback():
         with patch("paperdl.download.requests.get") as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.headers = {"content-length": "100"}
+            mock_response.headers = {"content-length": "9"}  # Match "test data" size
             mock_response.iter_content.return_value = [b"test data"]
             mock_get.return_value = mock_response
 
             # Call without progress callback (None is the default)
             result = download_file("https://example.com/test.pdf", str(dest_path))
 
-            assert result is True
+            assert result is None
             assert dest_path.exists()
             with dest_path.open("rb") as f:
                 assert f.read() == b"test data"
@@ -236,7 +242,7 @@ def test_download_file_progress_callback_error_handling():
             # Callback errors should not break the download
             result = download_file("https://example.com/test.pdf", str(dest_path), failing_callback)
 
-            assert result is True
+            assert result is None
             assert dest_path.exists()
             # Verify file content was still written correctly
             assert dest_path.read_bytes() == b"test data"

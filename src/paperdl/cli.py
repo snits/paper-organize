@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 import click
 
 from .download import download_file
-from .exceptions import DownloadError
+from .exceptions import PaperDLError, NetworkError, HTTPError, FileSystemError, ValidationError
 
 
 @click.command()
@@ -45,16 +45,25 @@ def main(url: str, directory: str | None, name: str | None, *, quiet: bool, verb
         destination_path = download_dir / filename
 
         # Perform download
-        success = download_file(url, str(destination_path))
+        download_file(url, str(destination_path))
         
-        if success:
-            if not quiet:
-                click.echo(f"✓ Downloaded to: {destination_path}")
-        else:
-            raise DownloadError("Download failed")
+        if not quiet:
+            click.echo(f"✓ Downloaded to: {destination_path}")
 
-    except DownloadError as e:
-        click.echo(f"✗ Download failed: {e}", err=True)
+    except ValidationError as e:
+        click.echo(f"✗ {e.user_message()}", err=True)
+        raise click.Abort()
+    except HTTPError as e:
+        click.echo(f"✗ {e.user_message()}", err=True)
+        raise click.Abort()
+    except NetworkError as e:
+        click.echo(f"✗ {e.user_message()}", err=True)
+        raise click.Abort()
+    except FileSystemError as e:
+        click.echo(f"✗ {e.user_message()}", err=True)
+        raise click.Abort()
+    except PaperDLError as e:
+        click.echo(f"✗ {e.user_message()}", err=True)
         raise click.Abort()
     except Exception as e:
         click.echo(f"✗ Unexpected error: {e}", err=True)
