@@ -2,8 +2,9 @@
 # ABOUTME: Handles fetching PDFs from URLs with network error handling
 
 import contextlib
+import time
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, Optional, TypeVar
 from urllib.parse import urlparse
 
 import requests
@@ -43,6 +44,68 @@ def calculate_retry_delay(
     return initial_delay * (multiplier**attempt)
 
 
+# Type variable for generic retry function
+T = TypeVar("T")
+
+
+def with_retry(
+    func: Callable[[], T],
+    max_retries: int,
+    retryable_exceptions: tuple[type[Exception], ...],
+    initial_delay: float = INITIAL_RETRY_DELAY,
+    multiplier: float = BACKOFF_MULTIPLIER,
+) -> T:
+    """Execute function with exponential backoff retry logic.
+
+    Args:
+        func: Function to execute (takes no arguments)
+        max_retries: Maximum number of retry attempts
+        retryable_exceptions: Exception types that trigger retries
+        initial_delay: Base delay in seconds for first retry
+        multiplier: Exponential backoff multiplier
+
+    Returns:
+        Result of successful function execution
+
+    Raises:
+        The final exception if all retries are exhausted
+        Any non-retryable exception immediately
+
+    Examples:
+        >>> def failing_request():
+        ...     response = requests.get("http://example.com")
+        ...     response.raise_for_status()
+        ...     return response
+        >>> result = with_retry(
+        ...     failing_request,
+        ...     max_retries=3,
+        ...     retryable_exceptions=(requests.exceptions.Timeout,)
+        ... )
+    """
+    last_exception = None
+
+    for attempt in range(max_retries + 1):
+        try:
+            return func()
+        except retryable_exceptions as e:  # noqa: PERF203
+            last_exception = e
+            if attempt < max_retries:
+                delay = calculate_retry_delay(attempt, initial_delay, multiplier)
+                time.sleep(delay)
+            # If this was the last attempt, we'll raise below
+        except Exception:
+            # Non-retryable exception - raise immediately
+            raise
+
+    # All retries exhausted - raise the last exception
+    if last_exception is not None:
+        raise last_exception
+
+    # This should never happen, but for type checker completeness
+    error_msg = "Retry logic failed unexpectedly"
+    raise RuntimeError(error_msg)
+
+
 def _validate_download_inputs(url: str, destination_path: str) -> None:
     """Validate download function inputs.
 
@@ -69,15 +132,138 @@ def _validate_download_inputs(url: str, destination_path: str) -> None:
     parsed = urlparse(url)
     if not parsed.scheme or not parsed.netloc:
         msg = "URL must have a valid scheme and hostname"
-        raise ValidationError(
-            msg, field="url", value=url
-        )
+        raise ValidationError(msg, field="url", value=url)
 
     if parsed.scheme not in ("http", "https"):
         msg = "URL must use HTTP or HTTPS protocol"
-        raise ValidationError(
-            msg, field="url", value=url
-        )
+        raise ValidationError(msg, field="url", value=url)
+
+
+def _prepare_destination(destination_path: str) -> Path:
+    """Prepare destination directory for file download.
+
+    Args:
+        destination_path: Local file path to save to
+
+    Returns:
+        Path object for the destination
+
+    Raises:
+        FileSystemError: If directory creation fails
+    """
+    dest_path = Path(destination_path)
+    try:
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        msg = f"Cannot create parent directory: {e}"
+        raise FileSystemError(msg, path=str(dest_path.parent)) from e
+    return dest_path
+
+
+def _fetch_response(url: str) -> requests.Response:
+    """Fetch HTTP response with error handling.
+
+    Args:
+        url: Source URL to download from
+
+    Returns:
+        HTTP response object
+
+    Raises:
+        NetworkError: If network request fails
+        HTTPError: If HTTP response indicates an error
+    """
+    try:
+        response = requests.get(url, timeout=30)
+    except requests.exceptions.Timeout as e:
+        msg = "Request timed out after 30 seconds"
+        raise NetworkError(msg, details={"url": url}) from e
+    except requests.exceptions.ConnectionError as e:
+        msg = f"Connection failed: {e}"
+        raise NetworkError(msg, details={"url": url}) from e
+    except requests.exceptions.RequestException as e:
+        msg = f"Request failed: {e}"
+        raise NetworkError(msg, details={"url": url}) from e
+
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        msg = f"HTTP request failed: {e}"
+        raise HTTPError(msg, status_code=response.status_code, url=url) from e
+
+    return response
+
+
+def _get_content_length(response: requests.Response) -> int:
+    """Extract content length from response headers.
+
+    Args:
+        response: HTTP response object
+
+    Returns:
+        Content length in bytes, or -1 if unknown
+    """
+    if "content-length" in response.headers:
+        try:
+            return int(response.headers["content-length"])
+        except (ValueError, TypeError):
+            pass
+    return -1
+
+
+def _write_content_to_file(
+    response: requests.Response,
+    dest_path: Path,
+    progress_callback: Optional[Callable[[int, int], None]],
+    total_bytes: int,
+) -> int:
+    """Write response content to file with progress tracking.
+
+    Args:
+        response: HTTP response object
+        dest_path: Destination file path
+        progress_callback: Optional progress callback
+        total_bytes: Total content length (-1 if unknown)
+
+    Returns:
+        Number of bytes successfully downloaded
+
+    Raises:
+        FileSystemError: If file operations fail
+    """
+    bytes_downloaded = 0
+    try:
+        with dest_path.open("wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:  # filter out keep-alive chunks
+                    try:
+                        f.write(chunk)
+                        bytes_downloaded += len(chunk)
+                    except OSError as e:
+                        msg = f"Failed to write to file: {e}"
+                        raise FileSystemError(msg, path=str(dest_path)) from e
+
+                    # Call progress callback if provided
+                    if progress_callback:
+                        with contextlib.suppress(Exception):
+                            progress_callback(bytes_downloaded, total_bytes)
+
+    except OSError as e:
+        # Clean up partial file on any file system error
+        if dest_path.exists():
+            with contextlib.suppress(OSError):
+                dest_path.unlink()
+        msg = f"File operation failed: {e}"
+        raise FileSystemError(msg, path=str(dest_path)) from e
+
+    except Exception:
+        # Clean up partial file on any other error
+        if dest_path.exists():
+            with contextlib.suppress(OSError):
+                dest_path.unlink()
+        raise
+
+    return bytes_downloaded
 
 
 def download_file(
@@ -103,82 +289,19 @@ def download_file(
     # Input validation
     _validate_download_inputs(url, destination_path)
 
-    dest_path = Path(destination_path)
+    # Prepare destination directory
+    dest_path = _prepare_destination(destination_path)
 
-    # Create parent directory if it doesn't exist
-    try:
-        dest_path.parent.mkdir(parents=True, exist_ok=True)
-    except OSError as e:
-        msg = f"Cannot create parent directory: {e}"
-        raise FileSystemError(
-            msg, path=str(dest_path.parent)
-        ) from e
-    # Download file with network error handling
-    try:
-        response = requests.get(url, timeout=30)
-    except requests.exceptions.Timeout as e:
-        msg = "Request timed out after 30 seconds"
-        raise NetworkError(
-            msg, details={"url": url}
-        ) from e
-    except requests.exceptions.ConnectionError as e:
-        msg = f"Connection failed: {e}"
-        raise NetworkError(msg, details={"url": url}) from e
-    except requests.exceptions.RequestException as e:
-        msg = f"Request failed: {e}"
-        raise NetworkError(msg, details={"url": url}) from e
+    # Fetch HTTP response
+    response = _fetch_response(url)
 
-    # Handle HTTP errors
-    try:
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        msg = f"HTTP request failed: {e}"
-        raise HTTPError(
-            msg, status_code=response.status_code, url=url
-        ) from e
+    # Get content length
+    total_bytes = _get_content_length(response)
 
-    # Extract total size from Content-Length header
-    total_bytes = -1
-    if "content-length" in response.headers:
-        try:
-            total_bytes = int(response.headers["content-length"])
-        except (ValueError, TypeError):
-            total_bytes = -1
-
-    # Write content to file with proper error handling and cleanup
-    bytes_downloaded = 0
-    try:
-        with dest_path.open("wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:  # filter out keep-alive chunks
-                    try:
-                        f.write(chunk)
-                        bytes_downloaded += len(chunk)
-                    except OSError as e:
-                        msg = f"Failed to write to file: {e}"
-                        raise FileSystemError(
-                            msg, path=str(dest_path)
-                        ) from e
-
-                    # Call progress callback if provided
-                    if progress_callback:
-                        with contextlib.suppress(Exception):
-                            progress_callback(bytes_downloaded, total_bytes)
-
-    except OSError as e:
-        # Clean up partial file on any file system error
-        if dest_path.exists():
-            with contextlib.suppress(OSError):
-                dest_path.unlink()
-        msg = f"File operation failed: {e}"
-        raise FileSystemError(msg, path=str(dest_path)) from e
-
-    except Exception:
-        # Clean up partial file on any other error
-        if dest_path.exists():
-            with contextlib.suppress(OSError):
-                dest_path.unlink()
-        raise
+    # Write content to file
+    bytes_downloaded = _write_content_to_file(
+        response, dest_path, progress_callback, total_bytes
+    )
 
     # Content validation if size is known
     if total_bytes > 0 and bytes_downloaded != total_bytes:
