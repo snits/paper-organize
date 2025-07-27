@@ -1,17 +1,22 @@
-# ABOUTME: CLI interface tests for paper-dl command-line functionality
-# ABOUTME: Tests argument parsing, help text, and basic command execution
+# ABOUTME: CLI interface tests for paper-organize command-line functionality
+# ABOUTME: Tests unified input processing, argument parsing, and basic command execution
 # SPDX-License-Identifier: MIT
 
 import os
 import tempfile
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
 
-from paperdl.cli import _determine_download_directory, _setup_download_directory, main
-from paperdl.exceptions import FileSystemError
+from paperorganize.cli import (
+    _determine_download_directory,
+    _setup_download_directory,
+    main,
+)
+from paperorganize.exceptions import FileSystemError
 
 
 def test_cli_help() -> None:
@@ -20,15 +25,19 @@ def test_cli_help() -> None:
     result = runner.invoke(main, ["--help"])
 
     assert result.exit_code == 0
-    assert "Download academic papers with descriptive filenames" in result.output
+    assert "Organize academic papers with intelligent metadata" in result.output
+    assert "INPUT can be:" in result.output
+    assert "URL" in result.output
+    assert "PDF file" in result.output
+    assert "Directory" in result.output
     assert "--dir" in result.output
     assert "--name" in result.output
     assert "--quiet" in result.output
     assert "--verbose" in result.output
 
 
-def test_cli_requires_url() -> None:
-    """Test CLI fails gracefully when no URL provided."""
+def test_cli_requires_input() -> None:
+    """Test CLI fails gracefully when no input provided."""
     runner = CliRunner()
     result = runner.invoke(main, [])
 
@@ -36,15 +45,18 @@ def test_cli_requires_url() -> None:
     assert "Missing argument" in result.output or "Usage:" in result.output
 
 
-def test_cli_with_url() -> None:
-    """Test CLI accepts URL argument and downloads successfully."""
+@patch("paperorganize.processors.download_file")
+def test_cli_with_url(mock_download: Any) -> None:
+    """Test CLI accepts URL argument and processes successfully."""
     runner = CliRunner()
-    result = runner.invoke(main, ["https://arxiv.org/abs/2301.00001"])
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            main, ["https://arxiv.org/pdf/2301.00001.pdf", "--quiet"]
+        )
 
-    # Should show downloading message and success
-    assert "Downloading: https://arxiv.org/abs/2301.00001" in result.output
-    assert "Downloaded to:" in result.output
-    assert result.exit_code == 0
+        # Should succeed and call download
+        assert result.exit_code == 0
+        mock_download.assert_called_once()
 
 
 # Directory Configuration Tests
@@ -83,7 +95,7 @@ def test_determine_download_directory_default_papers() -> None:
 def test_determine_download_directory_returns_papers_path() -> None:
     """Test that _determine_download_directory returns ~/Papers path (no fallback logic)."""
     with patch.dict(os.environ, {}, clear=True), patch(
-        "paperdl.cli.Path.home"
+        "paperorganize.cli.Path.home"
     ) as mock_home:
         fake_home = Path("/fake/home")
         mock_home.return_value = fake_home
@@ -118,7 +130,7 @@ def test_setup_download_directory_first_run_papers_dir() -> None:
 
         # Clear environment and mock home directory
         with patch.dict(os.environ, {}, clear=True), patch(
-            "paperdl.cli.Path.home", return_value=fake_home
+            "paperorganize.cli.Path.home", return_value=fake_home
         ):
             result_dir, is_first_run = _setup_download_directory(None, quiet=True)
 
@@ -133,7 +145,7 @@ def test_setup_download_directory_first_run_message() -> None:
         fake_home = Path(temp_dir)
 
         runner = CliRunner()
-        with patch("paperdl.cli.Path.home", return_value=fake_home), patch.dict(
+        with patch("paperorganize.cli.Path.home", return_value=fake_home), patch.dict(
             os.environ, {}, clear=True
         ), runner.isolated_filesystem():
             result_dir, is_first_run = _setup_download_directory(None, quiet=False)
@@ -146,7 +158,7 @@ def test_setup_download_directory_quiet_no_message() -> None:
         fake_home = Path(temp_dir)
         papers_dir = fake_home / "Papers"
 
-        with patch("paperdl.cli.Path.home", return_value=fake_home), patch.dict(
+        with patch("paperorganize.cli.Path.home", return_value=fake_home), patch.dict(
             os.environ, {}, clear=True
         ):
             result_dir, is_first_run = _setup_download_directory(None, quiet=True)
@@ -171,7 +183,7 @@ def test_cli_respects_papers_dir_env() -> None:
         papers_dir = str(Path(temp_dir) / "test_papers")
 
         with patch.dict(os.environ, {"PAPERS_DIR": papers_dir}), patch(
-            "paperdl.cli.download_file"
+            "paperorganize.processors.download_file"
         ) as mock_download:
             result = runner.invoke(main, ["https://httpbin.org/bytes/100", "--quiet"])
 
@@ -194,7 +206,7 @@ def test_setup_download_directory_fallback_to_cwd() -> None:
 
         # Clear environment and mock home directory
         with patch.dict(os.environ, {}, clear=True), patch(
-            "paperdl.cli.Path.home", return_value=fake_home
+            "paperorganize.cli.Path.home", return_value=fake_home
         ):
             # Track which paths had mkdir called
             mkdir_calls = []
@@ -240,3 +252,75 @@ def test_setup_download_directory_no_fallback_for_explicit_dir() -> None:
 
             assert "Cannot create directory" in str(exc_info.value)
             assert "Set PAPERS_DIR or use --dir" in exc_info.value.details["suggestion"]
+
+
+# New unified input tests
+
+
+@patch("paperorganize.processors.download_file")
+def test_cli_with_url_input(mock_download: Any) -> None:
+    """Test CLI with URL input."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(main, ["https://example.com/paper.pdf", "--quiet"])
+
+        assert result.exit_code == 0
+        mock_download.assert_called_once()
+
+
+def test_cli_with_file_input() -> None:
+    """Test CLI with existing PDF file input."""
+    runner = CliRunner()
+
+    with runner.isolated_filesystem():
+        # Create a test PDF file
+        test_pdf = Path("test.pdf")
+        test_pdf.write_text("fake pdf content")
+
+        result = runner.invoke(main, [str(test_pdf), "--quiet", "--no-auto-name"])
+
+        assert result.exit_code == 0
+
+
+def test_cli_with_directory_input() -> None:
+    """Test CLI with directory input."""
+    runner = CliRunner()
+
+    with runner.isolated_filesystem():
+        # Create test directory with PDF files
+        test_dir = Path("test_papers")
+        test_dir.mkdir()
+
+        pdf1 = test_dir / "paper1.pdf"
+        pdf2 = test_dir / "paper2.pdf"
+        pdf1.write_text("fake pdf 1")
+        pdf2.write_text("fake pdf 2")
+
+        result = runner.invoke(main, [str(test_dir), "--quiet", "--no-auto-name"])
+
+        assert result.exit_code == 0
+
+
+def test_cli_invalid_input() -> None:
+    """Test CLI with invalid input."""
+    runner = CliRunner()
+
+    result = runner.invoke(main, ["/nonexistent/path"])
+
+    assert result.exit_code != 0
+    assert "Invalid input" in result.output
+
+
+def test_cli_non_pdf_file() -> None:
+    """Test CLI rejects non-PDF files."""
+    runner = CliRunner()
+
+    with runner.isolated_filesystem():
+        # Create a non-PDF file
+        test_file = Path("test.txt")
+        test_file.write_text("not a pdf")
+
+        result = runner.invoke(main, [str(test_file)])
+
+        assert result.exit_code != 0
+        assert "File must be a PDF" in result.output

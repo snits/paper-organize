@@ -1,4 +1,4 @@
-# paper-dl
+# paper-organize
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -21,14 +21,14 @@ A command-line utility for downloading academic papers with intelligent metadata
 ### From Source
 ```bash
 git clone <repository-url>
-cd paper-dl
+cd paper-organize
 pip install -e .
 ```
 
 ### Development Installation
 ```bash
 git clone <repository-url>
-cd paper-dl
+cd paper-organize
 uv sync --extra dev
 ```
 
@@ -37,16 +37,16 @@ uv sync --extra dev
 ### Basic Usage
 ```bash
 # Download with automatic intelligent naming
-paper-dl https://arxiv.org/pdf/2506.21734
+paper-organize https://arxiv.org/pdf/2506.21734
 
 # Download with original filename  
-paper-dl https://arxiv.org/pdf/2506.21734 --no-auto-name
+paper-organize https://arxiv.org/pdf/2506.21734 --no-auto-name
 ```
 
 ### Real Example
 ```bash
 # Download this arXiv paper:
-paper-dl https://arxiv.org/pdf/2506.21734
+paper-organize https://arxiv.org/pdf/2506.21734
 
 # Creates file: Wang_Hierarchical_Reasoning_Model.pdf
 # Instead of: 2506.21734.pdf
@@ -54,9 +54,9 @@ paper-dl https://arxiv.org/pdf/2506.21734
 
 ### Command Options
 ```bash
-paper-dl --help
+paper-organize --help
 
-# Usage: paper-dl [OPTIONS] URL
+# Usage: paper-organize [OPTIONS] URL
 # 
 # Options:
 #   --dir DIRECTORY   Directory to save file to (overrides PAPERS_DIR)
@@ -75,10 +75,10 @@ paper-dl --help
 export PAPERS_DIR="$HOME/Research/Papers"
 
 # Now all downloads go to ~/Research/Papers by default
-paper-dl https://arxiv.org/pdf/2506.21734
+paper-organize https://arxiv.org/pdf/2506.21734
 
 # Override for specific download
-paper-dl https://arxiv.org/pdf/2506.21734 --dir ./references/
+paper-organize https://arxiv.org/pdf/2506.21734 --dir ./references/
 ```
 
 
@@ -139,7 +139,7 @@ This project builds on several excellent open-source libraries:
 - **[MyPy](https://github.com/python/mypy)** (MIT) - Static type checker
 - **[Ruff](https://github.com/astral-sh/ruff)** (MIT) - Fast Python linter and formatter
 
-We're grateful to the maintainers and contributors of these projects for making paper-dl possible.
+We're grateful to the maintainers and contributors of these projects for making paper-organize possible.
 
 ## License
 

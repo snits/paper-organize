@@ -1,5 +1,5 @@
 [project]
-name = "paper-dl"
+name = "paper-organize"
 version = "1.0.0"
 description = "Command-line utility for downloading academic papers with descriptive filenames"
 readme = "README.md"
@@ -33,7 +33,7 @@ dependencies = [
 ]
 
 [project.scripts]
-paper-dl = "paperdl.cli:main"
+paper-organize = "paperorganize.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -80,7 +80,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/paperdl"]
+packages = ["src/paperorganize"]
 
 [build-system]
 requires = ["hatchling"]

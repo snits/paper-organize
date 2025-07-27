@@ -5,7 +5,7 @@
 import tempfile
 from unittest.mock import MagicMock, patch
 
-from paperdl.metadata import (
+from paperorganize.metadata import (
     PaperMetadata,
     _extract_year_from_title,
     extract_pdf_metadata,
@@ -56,7 +56,7 @@ class TestPaperMetadata:
 class TestExtractPdfMetadata:
     """Test PDF metadata extraction functionality."""
 
-    @patch("paperdl.metadata.PdfReader")
+    @patch("paperorganize.metadata.PdfReader")
     def test_extract_from_pypdf_metadata(self, mock_pdf_reader: MagicMock) -> None:
         """Test successful extraction from PDF metadata using pypdf."""
         # Setup mock PDF with metadata
@@ -77,8 +77,8 @@ class TestExtractPdfMetadata:
         assert "John Doe" in result.authors
         assert "Jane Smith" in result.authors
 
-    @patch("paperdl.metadata.pdf2doi.pdf2doi")
-    @patch("paperdl.metadata.PdfReader")
+    @patch("paperorganize.metadata.pdf2doi.pdf2doi")
+    @patch("paperorganize.metadata.PdfReader")
     def test_extract_with_pdf2doi_fallback(
         self, mock_pdf_reader: MagicMock, mock_pdf2doi: MagicMock
     ) -> None:
@@ -100,8 +100,8 @@ class TestExtractPdfMetadata:
         assert result.doi == "10.1234/example.doi"
         mock_pdf2doi.assert_called_once_with(tmp_file.name)
 
-    @patch("paperdl.metadata.pdf2doi.pdf2doi")
-    @patch("paperdl.metadata.PdfReader")
+    @patch("paperorganize.metadata.pdf2doi.pdf2doi")
+    @patch("paperorganize.metadata.PdfReader")
     def test_extract_arxiv_id(
         self, mock_pdf_reader: MagicMock, mock_pdf2doi: MagicMock
     ) -> None:
@@ -120,8 +120,8 @@ class TestExtractPdfMetadata:
 
         assert result.arxiv_id == "2401.12345"
 
-    @patch("paperdl.metadata.pdf2doi.pdf2doi")
-    @patch("paperdl.metadata.PdfReader")
+    @patch("paperorganize.metadata.pdf2doi.pdf2doi")
+    @patch("paperorganize.metadata.PdfReader")
     def test_extract_handles_missing_file(
         self, mock_pdf_reader: MagicMock, _mock_pdf2doi: MagicMock
     ) -> None:
@@ -137,8 +137,8 @@ class TestExtractPdfMetadata:
         assert result.arxiv_id is None
         assert result.year is None
 
-    @patch("paperdl.metadata.pdf2doi.pdf2doi")
-    @patch("paperdl.metadata.PdfReader")
+    @patch("paperorganize.metadata.pdf2doi.pdf2doi")
+    @patch("paperorganize.metadata.PdfReader")
     def test_extract_handles_corrupted_pdf(
         self, mock_pdf_reader: MagicMock, mock_pdf2doi: MagicMock
     ) -> None:
@@ -309,7 +309,7 @@ class TestYearExtraction:
         _extract_year_from_title("Modern Machine Learning Techniques", metadata)
         assert metadata.year is None
 
-    @patch("paperdl.metadata.PdfReader")
+    @patch("paperorganize.metadata.PdfReader")
     def test_extract_year_from_pdf_creation_date(
         self, mock_pdf_reader: MagicMock
     ) -> None:
@@ -326,7 +326,7 @@ class TestYearExtraction:
 
         assert result.year == TEST_YEAR_2024
 
-    @patch("paperdl.metadata.PdfReader")
+    @patch("paperorganize.metadata.PdfReader")
     def test_extract_year_from_pdf_mod_date_fallback(
         self, mock_pdf_reader: MagicMock
     ) -> None:
@@ -343,7 +343,7 @@ class TestYearExtraction:
 
         assert result.year == TEST_YEAR_2023
 
-    @patch("paperdl.metadata.PdfReader")
+    @patch("paperorganize.metadata.PdfReader")
     def test_extract_year_from_title_fallback(self, mock_pdf_reader: MagicMock) -> None:
         """Test year extraction from title when PDF metadata has no dates."""
         mock_reader = MagicMock()

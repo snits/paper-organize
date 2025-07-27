@@ -1,4 +1,4 @@
-# ABOUTME: Command-line interface for paper-dl with Click framework
+# ABOUTME: Command-line interface for paper-organize with Click framework
 # ABOUTME: Handles argument parsing, validation, and main entry point
 # SPDX-License-Identifier: MIT
 
@@ -98,7 +98,7 @@ def _setup_download_directory(
     # Show first-run message for ~/Papers creation
     if is_first_run and not quiet:
         click.echo(
-            f"📁 Created {papers_dir} directory for your downloaded papers", err=True
+            f"📁 Created {papers_dir} directory for your organized papers", err=True
         )
         click.echo(
             "   Use --dir to specify a different location, or set PAPERS_DIR", err=True
@@ -213,7 +213,7 @@ def main(
     quiet: bool,
     verbose: bool,
 ) -> None:
-    """Download academic papers with descriptive filenames.
+    """Organize academic papers with descriptive filenames.
 
     Directory Priority: --dir > PAPERS_DIR environment variable > ~/Papers (default)
     """

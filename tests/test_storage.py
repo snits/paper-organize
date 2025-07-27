@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from paperdl.storage import ensure_directory, resolve_conflicts
+from paperorganize.storage import ensure_directory, resolve_conflicts
 
 
 def test_ensure_directory_creates_path() -> None:

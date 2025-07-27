@@ -9,8 +9,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
-from paperdl.download import calculate_retry_delay, download_file, with_retry
-from paperdl.exceptions import HTTPError, NetworkError
+from paperorganize.download import calculate_retry_delay, download_file, with_retry
+from paperorganize.exceptions import HTTPError, NetworkError
 
 # Test constants
 TEST_FILE_SIZE = 1024
@@ -57,7 +57,7 @@ def test_download_file_success() -> None:
         dest_path = Path(temp_dir) / "test.pdf"
 
         # Mock requests to avoid actual HTTP calls
-        with patch("paperdl.download.requests.get") as mock_get:
+        with patch("paperorganize.download.requests.get") as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.headers = {"content-length": "9"}  # Match actual data size
@@ -75,7 +75,7 @@ def test_download_file_http_error() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         dest_path = Path(temp_dir) / "test.pdf"
 
-        with patch("paperdl.download.requests.get") as mock_get:
+        with patch("paperorganize.download.requests.get") as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = HTTP_NOT_FOUND
             mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
@@ -96,7 +96,7 @@ def test_download_file_network_timeout() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         dest_path = Path(temp_dir) / "test.pdf"
 
-        with patch("paperdl.download.requests.get") as mock_get:
+        with patch("paperorganize.download.requests.get") as mock_get:
             mock_get.side_effect = requests.exceptions.Timeout("Connection timeout")
 
             with pytest.raises(NetworkError) as exc_info:
@@ -111,7 +111,7 @@ def test_download_file_creates_directory() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         nested_path = Path(temp_dir) / "nested" / "dir" / "test.pdf"
 
-        with patch("paperdl.download.requests.get") as mock_get:
+        with patch("paperorganize.download.requests.get") as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.headers = {"content-length": "11"}  # Match "pdf content" size
@@ -135,7 +135,7 @@ def test_download_file_progress_callback_with_content_length() -> None:
         def progress_callback(bytes_downloaded: int, total_bytes: int) -> None:
             progress_calls.append((bytes_downloaded, total_bytes))
 
-        with patch("paperdl.download.requests.get") as mock_get:
+        with patch("paperorganize.download.requests.get") as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.headers = {"content-length": "16"}  # Two 8-byte chunks
@@ -150,7 +150,7 @@ def test_download_file_progress_callback_with_content_length() -> None:
             assert dest_path.exists()
 
             # Verify progress was tracked correctly
-            assert len(progress_calls) == 2  # noqa: PLR2004
+            assert len(progress_calls) == 2
             assert progress_calls[0] == (
                 8,
                 16,
@@ -172,7 +172,7 @@ def test_download_file_progress_callback_without_content_length() -> None:
         def progress_callback(bytes_downloaded: int, total_bytes: int) -> None:
             progress_calls.append((bytes_downloaded, total_bytes))
 
-        with patch("paperdl.download.requests.get") as mock_get:
+        with patch("paperorganize.download.requests.get") as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.headers = {}  # No Content-Length header
@@ -186,7 +186,7 @@ def test_download_file_progress_callback_without_content_length() -> None:
             assert dest_path.exists()
 
             # Verify progress was tracked with -1 for unknown total
-            assert len(progress_calls) == 3  # noqa: PLR2004
+            assert len(progress_calls) == 3
             assert progress_calls[0] == (5, -1)  # 5 bytes downloaded, unknown total
             assert progress_calls[1] == (10, -1)  # 10 bytes downloaded, unknown total
             assert progress_calls[2] == (15, -1)  # 15 bytes downloaded, unknown total
@@ -203,7 +203,7 @@ def test_download_file_progress_callback_invalid_content_length() -> None:
         def progress_callback(bytes_downloaded: int, total_bytes: int) -> None:
             progress_calls.append((bytes_downloaded, total_bytes))
 
-        with patch("paperdl.download.requests.get") as mock_get:
+        with patch("paperorganize.download.requests.get") as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.headers = {
@@ -231,7 +231,7 @@ def test_download_file_no_progress_callback() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         dest_path = Path(temp_dir) / "test.pdf"
 
-        with patch("paperdl.download.requests.get") as mock_get:
+        with patch("paperorganize.download.requests.get") as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.headers = {"content-length": "9"}  # Match "test data" size
@@ -255,7 +255,7 @@ def test_download_file_progress_callback_error_handling() -> None:
             msg = "Callback failed!"
             raise RuntimeError(msg)
 
-        with patch("paperdl.download.requests.get") as mock_get:
+        with patch("paperorganize.download.requests.get") as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.headers = {"content-length": "9"}
@@ -279,23 +279,23 @@ def test_calculate_retry_delay_default_values() -> None:
     assert calculate_retry_delay(0) == 1.0
 
     # Second retry (attempt 1): 1.0 * (2.0 ** 1) = 2.0
-    assert calculate_retry_delay(1) == 2.0  # noqa: PLR2004
+    assert calculate_retry_delay(1) == 2.0
 
     # Third retry (attempt 2): 1.0 * (2.0 ** 2) = 4.0
-    assert calculate_retry_delay(2) == 4.0  # noqa: PLR2004
+    assert calculate_retry_delay(2) == 4.0
 
 
 def test_calculate_retry_delay_custom_values() -> None:
     """Test retry delay calculation with custom initial delay and multiplier."""
     # Custom initial delay of 0.5 seconds, multiplier of 3.0
     # First retry: 0.5 * (3.0 ** 0) = 0.5
-    assert calculate_retry_delay(0, initial_delay=0.5, multiplier=3.0) == 0.5  # noqa: PLR2004
+    assert calculate_retry_delay(0, initial_delay=0.5, multiplier=3.0) == 0.5
 
     # Second retry: 0.5 * (3.0 ** 1) = 1.5
-    assert calculate_retry_delay(1, initial_delay=0.5, multiplier=3.0) == 1.5  # noqa: PLR2004
+    assert calculate_retry_delay(1, initial_delay=0.5, multiplier=3.0) == 1.5
 
     # Third retry: 0.5 * (3.0 ** 2) = 4.5
-    assert calculate_retry_delay(2, initial_delay=0.5, multiplier=3.0) == 4.5  # noqa: PLR2004
+    assert calculate_retry_delay(2, initial_delay=0.5, multiplier=3.0) == 4.5
 
 
 def test_with_retry_successful_execution_after_retries() -> None:
@@ -382,7 +382,7 @@ def test_with_retry_proper_delay_calculation_integration() -> None:
         raise requests.exceptions.Timeout(always_fails_msg)
 
     # Mock time.sleep to capture delay calculations
-    with patch("paperdl.download.time.sleep") as mock_sleep:
+    with patch("paperorganize.download.time.sleep") as mock_sleep:
         with pytest.raises(requests.exceptions.Timeout):
             with_retry(
                 failing_function,
@@ -495,7 +495,7 @@ def test_download_file_with_retry_integration() -> None:
         dest_path = Path(temp_dir) / "retry_test.bin"
         call_count = 0
 
-        def mock_requests_get(url: str, timeout: int | None = None) -> MagicMock:  # noqa: ARG001
+        def mock_requests_get(url: str, timeout: int | None = None) -> MagicMock:
             nonlocal call_count
             call_count += 1
             if call_count < MAX_RETRY_ATTEMPTS:
@@ -509,7 +509,9 @@ def test_download_file_with_retry_integration() -> None:
             mock_response.iter_content.return_value = [b"test"]
             return mock_response
 
-        with patch("paperdl.download.requests.get", side_effect=mock_requests_get):
+        with patch(
+            "paperorganize.download.requests.get", side_effect=mock_requests_get
+        ):
             # Should succeed after retries
             download_file("https://example.com/test.pdf", str(dest_path))
 
@@ -527,7 +529,7 @@ def test_download_file_retry_respects_http_errors() -> None:
         dest_path = Path(temp_dir) / "http_error_test.bin"
         call_count = 0
 
-        def mock_requests_get(url: str, timeout: int | None = None) -> MagicMock:  # noqa: ARG001
+        def mock_requests_get(url: str, timeout: int | None = None) -> MagicMock:
             nonlocal call_count
             call_count += 1
             # Return 404 HTTP error immediately
@@ -539,7 +541,7 @@ def test_download_file_retry_respects_http_errors() -> None:
             return mock_response
 
         with patch(
-            "paperdl.download.requests.get", side_effect=mock_requests_get
+            "paperorganize.download.requests.get", side_effect=mock_requests_get
         ), pytest.raises(HTTPError):
             # HTTP errors should NOT be retried
             download_file("https://example.com/missing.pdf", str(dest_path))
