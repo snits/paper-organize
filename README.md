@@ -81,6 +81,7 @@ paper-dl https://arxiv.org/pdf/2506.21734
 paper-dl https://arxiv.org/pdf/2506.21734 --dir ./references/
 ```
 
+
 ## How It Works
 
 1. **Downloads** the PDF from the provided URL with progress tracking

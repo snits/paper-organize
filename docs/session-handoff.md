@@ -81,6 +81,32 @@
 - ✅ **Code quality standards**: All Ruff linting rules satisfied
 - ✅ **Production validation**: Real arXiv PDF successfully renamed to `Wang_Hierarchical_Reasoning_Model.pdf`
 
+### ✅ Step 7: Environment Variable Configuration (COMPLETE)
+
+**Completed Implementation** (Committed: 95be06be66ac):
+- ✅ **PAPERS_DIR environment variable**: Default download directory configuration
+- ✅ **Priority hierarchy**: `--dir` flag > `PAPERS_DIR` env var > `~/Papers` default > current directory fallback
+- ✅ **First-run experience**: Automatic `~/Papers` creation with informative messaging
+- ✅ **Error handling**: Graceful fallback to current directory with helpful error messages
+- ✅ **CLI integration**: Help text updated to document environment variable usage
+
+**Technical Features**:
+- ✅ **Path expansion**: Tilde expansion (`~`) support in PAPERS_DIR values
+- ✅ **Directory creation**: Automatic parent directory creation with proper permissions
+- ✅ **Fallback logic**: Robust handling of permission errors and filesystem issues
+- ✅ **User messaging**: Clear feedback about directory creation and usage
+
+**Security Considerations**:
+- ✅ **Security review**: Path traversal vulnerability assessment completed
+- ✅ **Design decision**: Rely on OS file permissions as security boundary (no custom validation)
+- ✅ **Principle**: Simple implementation trusting filesystem security rather than over-engineering
+
+**Quality Assurance**:
+- ✅ **86/86 tests passing**: Full test coverage including environment variable scenarios
+- ✅ **Type safety compliance**: MyPy clean with comprehensive type annotations
+- ✅ **Code quality standards**: Ruff clean with no linting violations
+- ✅ **Integration validation**: CLI properly respects environment variable configuration
+
 ## Technical Implementation Details
 
 ### Current Code Structure
@@ -130,13 +156,13 @@ def main(...):
 **Quality Gate Status**:
 - ✅ **MyPy**: Success - no issues found in 12 source files
 - ✅ **Ruff**: All checks passed (code style compliance)  
-- ✅ **Pytest**: All functional and integration tests passing
+- ✅ **Pytest**: 86/86 tests passing (all functional and integration tests)
 
 ## Commands for Next Session
 
 ### Quality Gate Commands (ALL PASSING ✅)
 ```bash
-# Test suite (74/74 tests passing)
+# Test suite (86/86 tests passing)
 uv run pytest
 
 # Type checking (clean)
@@ -165,11 +191,13 @@ uv sync --extra dev
 uv run pytest tests/test_download.py -v
 uv run pytest tests/test_cli.py -v
 
-# Test CLI with metadata extraction
+# Test CLI with metadata extraction and PAPERS_DIR
+export PAPERS_DIR="$HOME/Research/Papers"
 uv run paper-dl https://arxiv.org/pdf/2506.21734  # Test real PDF with auto-naming
 uv run paper-dl https://httpbin.org/status/404     # Test HTTP error handling
 uv run paper-dl invalid-url                        # Test validation error
 uv run paper-dl https://httpbin.org/bytes/1024 --no-auto-name  # Test without metadata processing
+uv run paper-dl https://httpbin.org/bytes/1024 --dir ./custom/  # Test custom directory override
 ```
 
 ## Architectural Progress Summary
@@ -188,12 +216,16 @@ uv run paper-dl https://httpbin.org/bytes/1024 --no-auto-name  # Test without me
    - Filesystem-safe sanitization with Unicode normalization
    - CLI integration with graceful failure handling and opt-out controls
    - Real-world validation with arXiv PDF processing
+7. ✅ **Environment variable configuration** - PAPERS_DIR support (COMPLETE)
+   - Priority hierarchy: --dir flag > PAPERS_DIR env var > ~/Papers default
+   - Graceful fallback to current directory with proper error handling
+   - First-run experience with automatic ~/Papers creation
 
 **Next Development Phase**:
-7. ⏳ **Performance Optimization** - Chunked streaming, connection pooling, request caching
-8. ⏳ **Advanced Features** - Batch downloads, configuration files, plugin system
+8. ⏳ **Performance Optimization** - Chunked streaming, connection pooling, request caching
+9. ⏳ **Advanced Features** - Batch downloads, configuration files, plugin system
 
-## Step 7: Performance Optimization Implementation Plan
+## Step 8: Performance Optimization Implementation Plan
 
 ### Core Feature Requirements
 **Objective**: Optimize download performance for large files and multiple concurrent downloads.
@@ -234,7 +266,7 @@ aiohttp = "^3.9"       # Async HTTP for concurrent downloads
 rich = "^13.0"         # Enhanced progress bars and output
 ```
 
-### Quality Gates for Step 7
+### Quality Gates for Step 8
 - [ ] Performance benchmarks vs current implementation
 - [ ] Memory usage profiling with large files
 - [ ] Concurrent download stress testing
@@ -267,20 +299,20 @@ rich = "^13.0"         # Enhanced progress bars and output
 - ✅ **Type safety**: Full MyPy compliance with py.typed marker
 - ✅ **Code quality**: All Ruff linting rules satisfied
 
-**Status**: PDF metadata extraction implementation COMPLETE. All core features delivered with full production readiness.
+**Status**: Environment variable configuration implementation COMPLETE. All Milestone 3 features delivered with full production readiness.
 
 ## Session Summary
 
 **Accomplishments This Session**:
-1. ✅ **Implemented complete metadata extraction**: Layered pypdf + pdf2doi strategy with fallbacks
-2. ✅ **Added intelligent auto-naming**: Filesystem-safe `Author_Year_Title.pdf` generation
-3. ✅ **Integrated CLI functionality**: `--no-auto-name` flag with graceful error handling
-4. ✅ **Achieved comprehensive test coverage**: 74 tests with metadata integration scenarios
-5. ✅ **Resolved all type safety issues**: Full MyPy compliance with py.typed marker
-6. ✅ **Validated real-world functionality**: Successfully processed arXiv PDF with metadata extraction
+1. ✅ **Continued from previous session**: PAPERS_DIR environment variable feature was already implemented
+2. ✅ **Assessed PostScript support**: Created comprehensive feasibility assessment and roadmap entry
+3. ✅ **Security review completed**: Addressed path traversal vulnerability concerns with code-reviewer
+4. ✅ **Design decision finalized**: Removed over-engineered security validation, trusting OS permissions
+5. ✅ **Quality gates verified**: All 86 tests passing, MyPy clean, Ruff clean
+6. ✅ **Documentation updated**: Session handoff reflects current complete implementation status
 
 **Key Lessons Applied**:
-- Code-reviewer quality gates prevent production issues
-- Systematic type annotation ensures maintainable codebase  
-- Graceful fallbacks enable robust feature enhancement
-- Real-world validation confirms implementation success
+- Security review and code-reviewer feedback prevents over-engineering
+- Simple implementations often superior to complex validation schemes
+- OS-level security boundaries are typically sufficient for CLI tools
+- Real-world validation confirms implementation robustness
