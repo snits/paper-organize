@@ -13,7 +13,6 @@ from .exceptions import FileSystemError, HTTPError, NetworkError, ValidationErro
 
 # Retry configuration constants
 MAX_NETWORK_RETRIES = 3  # Network timeouts and connection errors
-MAX_SERVER_ERROR_RETRIES = 2  # HTTP 5xx server errors
 INITIAL_RETRY_DELAY = 1.0  # Initial delay in seconds
 BACKOFF_MULTIPLIER = 2.0  # Exponential backoff multiplier
 
@@ -266,6 +265,58 @@ def _write_content_to_file(
     return bytes_downloaded
 
 
+def _fetch_response_with_retry(url: str) -> requests.Response:
+    """Fetch HTTP response with retry logic for network failures.
+
+    Args:
+        url: Source URL to download from
+
+    Returns:
+        HTTP response object
+
+    Raises:
+        NetworkError: If network request fails after all retries
+        HTTPError: If HTTP response indicates an error (no retry)
+    """
+
+    def make_request() -> requests.Response:
+        return requests.get(url, timeout=30)
+
+    try:
+        response = with_retry(
+            make_request,
+            max_retries=MAX_NETWORK_RETRIES,
+            retryable_exceptions=(
+                requests.exceptions.Timeout,
+                requests.exceptions.ConnectionError,
+            ),
+            initial_delay=INITIAL_RETRY_DELAY,
+            multiplier=BACKOFF_MULTIPLIER,
+        )
+    except (
+        requests.exceptions.Timeout,
+        requests.exceptions.ConnectionError,
+    ) as e:
+        # Convert to domain exception
+        if isinstance(e, requests.exceptions.Timeout):
+            msg = "Request timed out after 30 seconds"
+        else:
+            msg = f"Connection failed: {e}"
+        raise NetworkError(msg, details={"url": url}) from e
+    except requests.exceptions.RequestException as e:
+        msg = f"Request failed: {e}"
+        raise NetworkError(msg, details={"url": url}) from e
+
+    # Handle HTTP status errors (no retry)
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        msg = f"HTTP request failed: {e}"
+        raise HTTPError(msg, status_code=response.status_code, url=url) from e
+
+    return response
+
+
 def download_file(
     url: str,
     destination_path: str,
@@ -292,8 +343,8 @@ def download_file(
     # Prepare destination directory
     dest_path = _prepare_destination(destination_path)
 
-    # Fetch HTTP response
-    response = _fetch_response(url)
+    # Fetch HTTP response with retry logic for network failures
+    response = _fetch_response_with_retry(url)
 
     # Get content length
     total_bytes = _get_content_length(response)

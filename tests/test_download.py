@@ -352,7 +352,9 @@ def test_with_retry_exhausted_retries_scenario():
         )
 
     assert ALWAYS_FAILS_MSG in str(exc_info.value)
-    assert call_count == MAX_RETRY_ATTEMPTS  # Initial attempt + 2 retries = 3 total calls
+    assert (
+        call_count == MAX_RETRY_ATTEMPTS
+    )  # Initial attempt + 2 retries = 3 total calls
 
 
 def test_with_retry_non_retryable_exception_handling():
@@ -495,3 +497,60 @@ def test_with_retry_multiple_retryable_exceptions():
 
     assert result == "success after multiple error types"
     assert call_count == MAX_RETRY_ATTEMPTS
+
+
+def test_download_file_with_retry_integration():
+    """Test that download_file integrates retry logic for network failures."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        dest_path = Path(temp_dir) / "retry_test.bin"
+        call_count = 0
+
+        def mock_requests_get(url, timeout=None):  # noqa: ARG001
+            nonlocal call_count
+            call_count += 1
+            if call_count < MAX_RETRY_ATTEMPTS:
+                # First 2 attempts fail with network timeout
+                timeout_msg = TIMEOUT_MSG
+                raise requests.exceptions.Timeout(timeout_msg)
+            # Third attempt succeeds
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.headers = {"content-length": "4"}
+            mock_response.iter_content.return_value = [b"test"]
+            return mock_response
+
+        with patch("paperdl.download.requests.get", side_effect=mock_requests_get):
+            # Should succeed after retries
+            download_file("https://example.com/test.pdf", str(dest_path))
+
+        # Verify file was created and has correct content
+        assert dest_path.exists()
+        assert dest_path.read_bytes() == b"test"
+
+        # Verify retry logic was used (3 attempts total)
+        assert call_count == MAX_RETRY_ATTEMPTS
+
+
+def test_download_file_retry_respects_http_errors():
+    """Test that download_file does NOT retry HTTP errors (only network errors)."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        dest_path = Path(temp_dir) / "http_error_test.bin"
+        call_count = 0
+
+        def mock_requests_get(url, timeout=None):  # noqa: ARG001
+            nonlocal call_count
+            call_count += 1
+            # Return 404 HTTP error immediately
+            mock_response = MagicMock()
+            mock_response.status_code = HTTP_NOT_FOUND
+            mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+                "404 Not Found"
+            )
+            return mock_response
+
+        with patch("paperdl.download.requests.get", side_effect=mock_requests_get), pytest.raises(HTTPError):
+            # HTTP errors should NOT be retried
+            download_file("https://example.com/missing.pdf", str(dest_path))
+
+        # Should only be called once (no retries for HTTP errors)
+        assert call_count == FIRST_ATTEMPT
