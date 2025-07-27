@@ -1,5 +1,6 @@
 # ABOUTME: PDF metadata extraction and filename generation logic
 # ABOUTME: Extracts titles/authors from PDFs and creates filesystem-safe names
+# SPDX-License-Identifier: MIT
 
 import datetime
 import logging

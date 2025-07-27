@@ -1,5 +1,6 @@
 # ABOUTME: CLI interface tests for paper-dl command-line functionality
 # ABOUTME: Tests argument parsing, help text, and basic command execution
+# SPDX-License-Identifier: MIT
 
 from click.testing import CliRunner
 

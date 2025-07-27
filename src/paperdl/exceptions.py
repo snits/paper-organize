@@ -1,5 +1,6 @@
 # ABOUTME: Custom exception classes for paper-dl error handling
 # ABOUTME: Defines specific error types with user-friendly messages and debugging details
+# SPDX-License-Identifier: MIT
 
 from typing import Any, Dict, Optional
 

@@ -1,5 +1,6 @@
 # ABOUTME: Download module tests for basic HTTP functionality
 # ABOUTME: Tests basic file downloading and error handling
+# SPDX-License-Identifier: MIT
 
 import tempfile
 from pathlib import Path

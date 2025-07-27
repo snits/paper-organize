@@ -1,5 +1,6 @@
 # ABOUTME: File storage operations and conflict resolution
 # ABOUTME: Handles saving files with duplicate detection and directory creation
+# SPDX-License-Identifier: MIT
 
 from pathlib import Path
 

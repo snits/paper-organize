@@ -1,5 +1,6 @@
 # ABOUTME: Storage module tests for file operations and conflict resolution
 # ABOUTME: Tests directory creation, duplicate handling, and file system operations
+# SPDX-License-Identifier: MIT
 
 import tempfile
 from pathlib import Path

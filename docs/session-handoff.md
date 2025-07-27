@@ -1,11 +1,11 @@
 # ABOUTME: Session handoff documentation for paper-dl development
 # ABOUTME: Status summary and next steps for continuing implementation
 
-# Session Handoff: Retry Logic Implementation Complete
+# Session Handoff: PDF Metadata Extraction Implementation Complete
 
 ## Current Implementation Status
 
-### ✅ Architectural Fix Plan Complete (Steps 1-4)
+### ✅ Core Infrastructure Complete (Steps 1-5)
 
 #### Step 1: Exception Hierarchy (Committed: 22e7e9e57850)
 - **Structured exceptions**: `PaperDLError` base class with user-friendly messaging system
@@ -58,9 +58,28 @@
 - ✅ **Code quality**: Clean architecture with no code duplication (DRY compliant)
 - ✅ **Quality gates**: All 43 tests passing, MyPy clean, Ruff clean
 
-**Recent Commits**:
-- `d6286834e8ac`: Retry wrapper with quality compliance
-- `03af1a57847f`: Retry logic integration into download_file()
+### ✅ Step 6: PDF Metadata Extraction & Auto-Naming (COMPLETE)
+
+**Completed Implementation** (Committed: b109a93879a9):
+- ✅ **Layered metadata extraction**: pypdf → pdf2doi → title parsing fallback strategy
+- ✅ **Intelligent filename generation**: `Author_Year_Title.pdf` format with sanitization
+- ✅ **CLI integration**: `--no-auto-name` opt-out flag, graceful metadata failure handling
+- ✅ **Security implementation**: Unicode normalization, filesystem-safe character sanitization
+- ✅ **Conflict resolution**: Automatic numbering for filename conflicts (_1, _2, etc.)
+- ✅ **Real-world validation**: Successfully processes arXiv PDFs with full metadata extraction
+
+**Technical Features**:
+- ✅ **Optional dependencies**: Graceful handling when pypdf/pdf2doi unavailable
+- ✅ **Academic-focused extraction**: DOI and arXiv ID recognition via pdf2doi
+- ✅ **Year extraction**: PDF dates → title parsing → reasonable range validation
+- ✅ **Post-download processing**: Never blocks downloads, metadata extraction is enhancement-only
+- ✅ **Cross-platform compatibility**: Filesystem-safe naming with proper length limits
+
+**Quality Assurance**:
+- ✅ **74/74 tests passing**: Comprehensive unit and integration test coverage
+- ✅ **Type safety compliance**: Full MyPy clean with py.typed marker
+- ✅ **Code quality standards**: All Ruff linting rules satisfied
+- ✅ **Production validation**: Real arXiv PDF successfully renamed to `Wang_Hierarchical_Reasoning_Model.pdf`
 
 ## Technical Implementation Details
 
@@ -101,26 +120,27 @@ def main(...):
 **Current Status**: All quality gates passing ✅
 
 **Comprehensive Test Suite**:
-- ✅ **Download tests**: Real HTTP downloads, error scenarios, progress callbacks (22 tests)
-- ✅ **Integration tests**: CLI end-to-end scenarios with real endpoints (13 tests) 
-- ✅ **Retry helper tests**: Exponential backoff calculation with comprehensive coverage (10 tests)
-- ✅ **Retry integration tests**: Network failure retry behavior and HTTP error non-retry behavior (2 tests)
-- ✅ **Total test coverage**: 43/43 tests passing
+- ✅ **Download tests**: Real HTTP downloads, error scenarios, progress callbacks, retry logic (24 tests)
+- ✅ **Integration tests**: CLI end-to-end scenarios with real endpoints (20 tests) 
+- ✅ **Metadata tests**: PDF extraction, filename generation, year parsing (26 tests)
+- ✅ **CLI tests**: Basic functionality and argument validation (3 tests)
+- ✅ **Storage tests**: Directory management and conflict resolution (3 tests)
+- ✅ **Total test coverage**: 74/74 tests passing
 
 **Quality Gate Status**:
-- ✅ **MyPy**: Success - no issues found in 6 source files
-- ✅ **Ruff**: All checks passed (code style compliance)
+- ✅ **MyPy**: Success - no issues found in 12 source files
+- ✅ **Ruff**: All checks passed (code style compliance)  
 - ✅ **Pytest**: All functional and integration tests passing
 
 ## Commands for Next Session
 
 ### Quality Gate Commands (ALL PASSING ✅)
 ```bash
-# Test suite (43/43 tests passing)
+# Test suite (74/74 tests passing)
 uv run pytest
 
 # Type checking (clean)
-uv run mypy src/paperdl/
+uv run mypy src/ tests/
 
 # Linting (clean) 
 uv run ruff check src/ tests/
@@ -128,11 +148,13 @@ uv run ruff format src/ tests/
 ```
 
 ### Production Readiness Verification
-- ✅ **Comprehensive test coverage**: All download scenarios, retry behaviors, and CLI integration
-- ✅ **Type safety**: Full MyPy compliance with comprehensive type annotations
+- ✅ **Comprehensive test coverage**: All download scenarios, retry behaviors, metadata extraction, and CLI integration
+- ✅ **Type safety**: Full MyPy compliance with comprehensive type annotations and py.typed marker
 - ✅ **Code quality**: All Ruff linting rules satisfied with consistent style
 - ✅ **Network resilience**: Automatic retry logic for transient network failures
-- ✅ **Error handling**: User-friendly error messages for all failure scenarios
+- ✅ **Metadata processing**: Intelligent PDF filename generation with graceful fallbacks
+- ✅ **Security**: Unicode normalization and filesystem-safe character sanitization
+- ✅ **User experience**: Auto-naming with opt-out, conflict resolution, and error handling
 
 ### Development Commands
 ```bash
@@ -143,10 +165,11 @@ uv sync --extra dev
 uv run pytest tests/test_download.py -v
 uv run pytest tests/test_cli.py -v
 
-# Test CLI with exception handling
-uv run paper-dl https://httpbin.org/status/404  # Test HTTP error
-uv run paper-dl invalid-url                     # Test validation error
-uv run paper-dl https://httpbin.org/bytes/1024  # Test successful download
+# Test CLI with metadata extraction
+uv run paper-dl https://arxiv.org/pdf/2506.21734  # Test real PDF with auto-naming
+uv run paper-dl https://httpbin.org/status/404     # Test HTTP error handling
+uv run paper-dl invalid-url                        # Test validation error
+uv run paper-dl https://httpbin.org/bytes/1024 --no-auto-name  # Test without metadata processing
 ```
 
 ## Architectural Progress Summary
@@ -156,107 +179,108 @@ uv run paper-dl https://httpbin.org/bytes/1024  # Test successful download
 2. ✅ **Download transformation** - Exception-based interface replacing boolean anti-pattern  
 3. ✅ **CLI integration** - User-friendly error messages from structured exceptions
 4. ✅ **Integration testing** - End-to-end CLI testing with real scenarios
-5. ✅ **Retry logic** - Network resilience with exponential backoff (COMPLETE)
+5. ✅ **Retry logic** - Network resilience with exponential backoff
    - Generic retry wrapper with comprehensive test coverage
    - Integrated into download_file() for production resilience
    - Smart retry strategy: network failures retry, HTTP errors fail fast
+6. ✅ **PDF metadata extraction** - Intelligent filename generation (COMPLETE)
+   - Layered extraction strategy: pypdf → pdf2doi → title parsing fallback
+   - Filesystem-safe sanitization with Unicode normalization
+   - CLI integration with graceful failure handling and opt-out controls
+   - Real-world validation with arXiv PDF processing
 
 **Next Development Phase**:
-6. 🔄 **Metadata Extraction & Auto-Naming** - PDF metadata extraction for automatic file naming
-7. ⏳ **Performance optimization** - Chunked streaming, connection pooling, request caching
+7. ⏳ **Performance Optimization** - Chunked streaming, connection pooling, request caching
+8. ⏳ **Advanced Features** - Batch downloads, configuration files, plugin system
 
-## Step 6: Metadata Extraction Implementation Plan
+## Step 7: Performance Optimization Implementation Plan
 
 ### Core Feature Requirements
-**Objective**: Extract metadata from downloaded PDFs to generate intelligent filenames automatically.
+**Objective**: Optimize download performance for large files and multiple concurrent downloads.
 
-### Technical Research Complete ✅
-**Library Strategy** (based on 2025 research):
-- **Primary**: `pypdf` (formerly PyPDF2) - Reliable basic metadata extraction, pure Python
-- **Academic Specialist**: `pdf2doi` - Multi-method DOI/arXiv extraction for academic papers  
-- **Fallback**: Content-based parsing when metadata insufficient
+### Technical Research Required
+**Optimization Strategy**:
+- **Chunked streaming**: Implement proper chunked download with configurable buffer sizes
+- **Connection pooling**: Reuse HTTP connections for multiple downloads
+- **Request caching**: Cache identical requests to avoid redundant downloads
+- **Progress optimization**: Reduce callback overhead for large files
 
 ### Implementation Architecture
 ```python
-# New module: src/paperdl/metadata.py
-class PaperMetadata:
-    title: Optional[str]
-    authors: List[str] 
-    doi: Optional[str]
-    arxiv_id: Optional[str]
-    year: Optional[int]
+# Enhanced download module: src/paperdl/download.py
+class DownloadSession:
+    """Persistent session with connection pooling."""
+    session: requests.Session
+    chunk_size: int = 8192
+    max_connections: int = 10
     
-def extract_pdf_metadata(file_path: str) -> PaperMetadata:
-    """Layered extraction strategy:
-    1. pypdf for standard PDF metadata
-    2. pdf2doi for academic identifiers
-    3. Filename-based fallback extraction
-    """
+def download_with_session(session: DownloadSession, url: str, dest: str) -> None:
+    """High-performance download with session reuse."""
 
-def generate_filename(metadata: PaperMetadata, fallback_name: str) -> str:
-    """Generate clean filename: 'Author_Year_Title.pdf'
-    - Handle special characters and length limits
-    - Filesystem-safe sanitization
-    - Fallback to original name if extraction fails
-    """
+def download_multiple(urls: List[str], dest_dir: str) -> List[Path]:
+    """Concurrent batch downloads with shared session."""
 ```
 
-### Identified Challenges
-- **Poor PDF metadata**: Academic papers often have incomplete/incorrect metadata
-- **Content extraction complexity**: Mathematical expressions complicate text parsing
-- **Filename sanitization**: Cross-platform filesystem compatibility
-- **Fallback strategies**: Graceful degradation when extraction fails
+### Performance Targets
+- **Large files**: >100MB downloads with <1% memory usage vs file size
+- **Concurrent downloads**: 5+ simultaneous downloads with progress tracking
+- **Network efficiency**: Connection reuse reducing overhead by >30%
+- **Memory efficiency**: Streaming downloads with bounded memory usage
 
-### Dependencies to Add
+### Dependencies to Consider
 ```toml
-# pyproject.toml additions
-pdf2doi = "^1.7"        # Academic paper DOI/arXiv extraction
-pypdf = "^4.0"          # PDF metadata extraction
+# pyproject.toml potential additions
+aiohttp = "^3.9"       # Async HTTP for concurrent downloads
+rich = "^13.0"         # Enhanced progress bars and output
 ```
 
-### Quality Gates for Step 6
-- [ ] TDD implementation with comprehensive test coverage
-- [ ] Integration with existing exception hierarchy
-- [ ] CLI integration with backward compatibility
-- [ ] Cross-platform filename sanitization
-- [ ] Performance testing with various PDF types
-- [ ] MyPy compliance and Ruff code quality
+### Quality Gates for Step 7
+- [ ] Performance benchmarks vs current implementation
+- [ ] Memory usage profiling with large files
+- [ ] Concurrent download stress testing
+- [ ] Progress tracking accuracy with multiple streams
+- [ ] Backward compatibility with existing CLI interface
+- [ ] Cross-platform performance validation
 
 ## Files Modified in Current Session
-**Committed Changes**:
-- `src/paperdl/exceptions.py` - Structured exception hierarchy
-- `src/paperdl/download.py` - Exception-based error handling + retry constants + helper functions
-- `src/paperdl/cli.py` - Exception-aware error display  
-- `tests/test_download.py` - Exception-based test assertions + retry helper tests
-- `tests/test_integration.py` - Comprehensive CLI integration tests
-
-**All Changes Committed** ✅:
-- `src/paperdl/download.py` - Complete retry logic integration with clean architecture
-- `tests/test_download.py` - Full test coverage including retry integration tests
+**Committed Changes** (b109a93879a9):
+- `src/paperdl/cli.py` - Complete CLI integration with metadata auto-naming
+- `src/paperdl/exceptions.py` - Refined exception handling and formatting
+- `src/paperdl/metadata.py` - Full metadata extraction implementation
+- `src/paperdl/py.typed` - Type safety marker for MyPy compliance
+- `tests/test_cli.py` - Enhanced CLI tests with type annotations
+- `tests/test_download.py` - Updated download tests with proper type safety
+- `tests/test_integration.py` - Added comprehensive metadata integration tests
+- `tests/test_metadata.py` - Complete metadata functionality test coverage
+- `tests/test_storage.py` - Updated storage tests with type annotations
+- `uv.lock` - Updated dependencies with pypdf and pdf2doi
 
 ## Architecture Quality Gates Status
 - ✅ **Information preservation**: No error context lost (vs. boolean anti-pattern)
-- ✅ **User experience**: Friendly error messages via `user_message()` method
-- ✅ **Developer experience**: Rich exception details for debugging
+- ✅ **User experience**: Friendly error messages and intelligent auto-naming
+- ✅ **Developer experience**: Rich exception details and comprehensive type safety
 - ✅ **Network resilience**: Production-ready retry logic for transient failures
+- ✅ **Metadata processing**: Layered extraction with graceful fallbacks
+- ✅ **Security implementation**: Unicode normalization and filesystem sanitization
 - ✅ **Clean architecture**: DRY compliance with proper separation of concerns
-- ✅ **Comprehensive test coverage**: All scenarios validated (43/43 tests passing)
-- ✅ **Type safety**: Full MyPy compliance with comprehensive type annotations
+- ✅ **Comprehensive test coverage**: All scenarios validated (74/74 tests passing)
+- ✅ **Type safety**: Full MyPy compliance with py.typed marker
 - ✅ **Code quality**: All Ruff linting rules satisfied
 
-**Status**: Retry logic implementation COMPLETE. All architectural improvements delivered with full production readiness.
+**Status**: PDF metadata extraction implementation COMPLETE. All core features delivered with full production readiness.
 
 ## Session Summary
 
 **Accomplishments This Session**:
-1. ✅ **Fixed critical bug**: Resolved undefined bytes_downloaded variable
-2. ✅ **Achieved quality compliance**: Fixed all MyPy/Ruff violations systematically  
-3. ✅ **Completed retry wrapper**: Generic, reusable retry logic with comprehensive tests
-4. ✅ **Integrated network resilience**: Smart retry strategy in production download function
-5. ✅ **Maintained code quality**: Code-reviewer process ensured clean, maintainable implementation
+1. ✅ **Implemented complete metadata extraction**: Layered pypdf + pdf2doi strategy with fallbacks
+2. ✅ **Added intelligent auto-naming**: Filesystem-safe `Author_Year_Title.pdf` generation
+3. ✅ **Integrated CLI functionality**: `--no-auto-name` flag with graceful error handling
+4. ✅ **Achieved comprehensive test coverage**: 74 tests with metadata integration scenarios
+5. ✅ **Resolved all type safety issues**: Full MyPy compliance with py.typed marker
+6. ✅ **Validated real-world functionality**: Successfully processed arXiv PDF with metadata extraction
 
 **Key Lessons Applied**:
-- Quality gate discipline prevents technical debt
-- Code-reviewer process catches design issues early
-- Atomic commit strategy enables clean development progression
-- Systematic error fixing maintains code quality standards
+- Code-reviewer quality gates prevent production issues
+- Systematic type annotation ensures maintainable codebase  
+- Graceful fallbacks enable robust feature enhancement
+- Real-world validation confirms implementation success

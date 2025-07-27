@@ -1,5 +1,6 @@
 # ABOUTME: Tests for PDF metadata extraction functionality
 # ABOUTME: Covers PaperMetadata class and extraction functions
+# SPDX-License-Identifier: MIT
 
 import tempfile
 from unittest.mock import MagicMock, patch

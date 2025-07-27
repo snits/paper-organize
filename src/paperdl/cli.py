@@ -1,5 +1,6 @@
 # ABOUTME: Command-line interface for paper-dl with Click framework
 # ABOUTME: Handles argument parsing, validation, and main entry point
+# SPDX-License-Identifier: MIT
 
 from pathlib import Path
 from urllib.parse import urlparse

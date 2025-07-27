@@ -1,8 +1,9 @@
 [project]
 name = "paper-dl"
-version = "0.1.0"
+version = "1.0.0"
 description = "Command-line utility for downloading academic papers with descriptive filenames"
 readme = "README.md"
+license = {text = "MIT"}
 authors = [
     { name = "Jerry Snitselaar", email = "dev@snitselaar.org" }
 ]

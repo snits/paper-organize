@@ -1,5 +1,6 @@
 # ABOUTME: HTTP download functionality with progress bars and retry logic
 # ABOUTME: Handles fetching PDFs from URLs with network error handling
+# SPDX-License-Identifier: MIT
 
 import contextlib
 import time

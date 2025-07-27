@@ -1,5 +1,6 @@
 # ABOUTME: Integration tests for paper-dl CLI with real network calls
 # ABOUTME: Tests complete CLI-to-download pipeline using httpbin.org for reliable testing
+# SPDX-License-Identifier: MIT
 
 import tempfile
 from pathlib import Path
