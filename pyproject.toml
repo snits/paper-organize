@@ -10,7 +10,8 @@ requires-python = ">=3.8"
 dependencies = [
     "click>=8.0.0",
     "requests>=2.25.0",
-    "PyPDF2>=3.0.0",
+    "pypdf>=4.0.0",
+    "pdf2doi>=1.7",
     "tqdm>=4.60.0",
 ]
 
