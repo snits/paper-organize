@@ -111,6 +111,73 @@ Command-line utility for downloading academic papers with descriptive filenames 
 **Success Criteria**: Tool works reliably for daily use with good UX ✅ ACHIEVED
 **Quality Metrics**: 86/86 tests passing, MyPy clean, Ruff clean ✅ VERIFIED
 
+### ✅ Milestone 4: Unified Tool Implementation (COMPLETE)
+**Goal**: Support processing of already-downloaded files and directories in addition to URLs
+**Status**: ✅ COMPLETE - Unified input processing with strategy pattern architecture
+
+**Expert Consultation Process**:
+- ✅ **UX Expert**: Recommended unified approach after package rename consideration
+- ✅ **Systems Architect**: Recommended unified tool for maintainability from start  
+- ✅ **Code-Reviewer**: Enforced atomic commit standards and architecture review
+
+**Tasks**:
+1. ✅ **Package Identity Update** (COMPLETE - Committed: 077fa5d3045f)
+   - ✅ Rename package: `paper-dl` → `paper-organize` reflecting unified capabilities
+   - ✅ Update all imports, build system, and documentation references
+   - ✅ Maintain backward compatibility for existing URL workflow
+   - ✅ Update CLI entry point and help text
+
+2. ✅ **Input Detection Infrastructure** (COMPLETE - Committed: a0538d54946a)
+   - ✅ Smart input type detection for URLs, files, and directories
+   - ✅ Comprehensive validation with descriptive error messages
+   - ✅ InputType enum with proper type safety
+   - ✅ Robust validation functions for each input type
+
+3. ✅ **Strategy Pattern Architecture** (COMPLETE - Committed: e2fc12eba8df)
+   - ✅ URLProcessor: Enhanced URL download with metadata processing
+   - ✅ FileProcessor: Organize existing PDF files with copy/move logic
+   - ✅ DirectoryProcessor: Batch process all PDFs in a directory
+   - ✅ ProcessingResult: Standardized return values with processing metadata
+   - ✅ Shared metadata utilities eliminating code duplication (DRY compliance)
+
+4. ✅ **Unified CLI Integration** (COMPLETE - Committed: f394f3a3c730)
+   - ✅ Single INPUT argument replacing URL-specific interface
+   - ✅ Automatic processor selection based on input type detection
+   - ✅ Consistent error handling and user feedback across all modes
+   - ✅ Batch processing summary for multi-file operations
+   - ✅ All existing CLI options work across input types
+
+5. ✅ **Documentation & Quality** (COMPLETE - Committed: dc34545e012e)
+   - ✅ README rewrite with unified usage examples and batch processing documentation
+   - ✅ Enhanced package description and keywords reflecting unified capabilities
+   - ✅ Comprehensive linting configuration with documented selective ignores
+   - ✅ Updated dependency management and development workflows
+
+**Technical Architecture**:
+- ✅ **Strategy pattern**: Clean separation of concerns per input type, easily extensible
+- ✅ **Input detection**: Robust validation with comprehensive error handling
+- ✅ **Shared utilities**: DRY-compliant metadata naming used across processors
+- ✅ **Keyword-only parameters**: Better API design for boolean flags
+- ✅ **Protocol definitions**: Type-safe interfaces for processor implementations
+
+**Quality Assurance**:
+- ✅ **Atomic commit discipline**: 6 logical commits with proper boundaries and bisectability
+- ✅ **Code-reviewer approval**: Comprehensive architecture and quality review process
+- ✅ **114/114 tests passing**: Enhanced test coverage including new input types
+- ✅ **Type safety**: Full MyPy compliance across expanded codebase
+- ✅ **Code quality**: Enhanced Ruff configuration with comprehensive linting
+
+**Production Capabilities**:
+- ✅ **URL processing**: Enhanced original functionality with unified interface
+- ✅ **File processing**: Organize individual PDFs with intelligent renaming
+- ✅ **Directory processing**: Batch organize entire directories efficiently
+- ✅ **Unified UX**: Single command interface for all input types
+- ✅ **Backward compatibility**: All existing workflows preserved and enhanced
+
+**Deliverable**: Unified tool supporting URLs, files, and directories ✅ DELIVERED
+**Success Criteria**: `paper-organize INPUT` works for any input type ✅ ACHIEVED  
+**Quality Metrics**: 114/114 tests passing, MyPy clean, Ruff clean ✅ VERIFIED
+
 ## Risk Mitigation Strategies
 
 ### Technical Risks
