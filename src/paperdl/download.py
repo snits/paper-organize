@@ -18,6 +18,29 @@ INITIAL_RETRY_DELAY = 1.0  # Initial delay in seconds
 BACKOFF_MULTIPLIER = 2.0  # Exponential backoff multiplier
 
 
+def calculate_retry_delay(attempt: int, initial_delay: float = INITIAL_RETRY_DELAY, 
+                         multiplier: float = BACKOFF_MULTIPLIER) -> float:
+    """Calculate exponential backoff delay for retry attempts.
+    
+    Args:
+        attempt: Current retry attempt number (0-based)
+        initial_delay: Base delay in seconds
+        multiplier: Exponential growth factor
+        
+    Returns:
+        Calculated delay in seconds for this attempt
+        
+    Examples:
+        >>> calculate_retry_delay(0)  # First retry
+        1.0
+        >>> calculate_retry_delay(1)  # Second retry  
+        2.0
+        >>> calculate_retry_delay(2)  # Third retry
+        4.0
+    """
+    return initial_delay * (multiplier ** attempt)
+
+
 def _validate_download_inputs(url: str, destination_path: str) -> None:
     """Validate download function inputs.
     

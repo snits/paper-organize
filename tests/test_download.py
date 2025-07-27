@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
-from paperdl.download import download_file
+from paperdl.download import calculate_retry_delay, download_file
 from paperdl.exceptions import HTTPError, NetworkError
 
 # Test constants
@@ -246,6 +246,31 @@ def test_download_file_progress_callback_error_handling():
             assert dest_path.exists()
             # Verify file content was still written correctly
             assert dest_path.read_bytes() == b"test data"
+
+
+def test_calculate_retry_delay_default_values():
+    """Test retry delay calculation with default configuration."""
+    # First retry (attempt 0): 1.0 * (2.0 ** 0) = 1.0
+    assert calculate_retry_delay(0) == 1.0
+    
+    # Second retry (attempt 1): 1.0 * (2.0 ** 1) = 2.0
+    assert calculate_retry_delay(1) == 2.0
+    
+    # Third retry (attempt 2): 1.0 * (2.0 ** 2) = 4.0
+    assert calculate_retry_delay(2) == 4.0
+
+
+def test_calculate_retry_delay_custom_values():
+    """Test retry delay calculation with custom initial delay and multiplier."""
+    # Custom initial delay of 0.5 seconds, multiplier of 3.0
+    # First retry: 0.5 * (3.0 ** 0) = 0.5
+    assert calculate_retry_delay(0, initial_delay=0.5, multiplier=3.0) == 0.5
+    
+    # Second retry: 0.5 * (3.0 ** 1) = 1.5
+    assert calculate_retry_delay(1, initial_delay=0.5, multiplier=3.0) == 1.5
+    
+    # Third retry: 0.5 * (3.0 ** 2) = 4.5
+    assert calculate_retry_delay(2, initial_delay=0.5, multiplier=3.0) == 4.5
 
 
 # TODO(claude): Retry logic tests will be added in future atomic commit
