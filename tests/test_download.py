@@ -30,7 +30,7 @@ FIRST_FAILURE_MSG = "First failure"
 SECOND_FAILURE_MSG = "Second failure"
 
 
-def test_download_file_basic_functionality():
+def test_download_file_basic_functionality() -> None:
     """Test basic download functionality with real HTTP endpoint."""
     with tempfile.TemporaryDirectory() as temp_dir:
         dest_path = Path(temp_dir) / "test_download.bin"
@@ -38,10 +38,7 @@ def test_download_file_basic_functionality():
         # Use httpbin.org for reliable testing - download 1KB of random data
         url = f"https://httpbin.org/bytes/{TEST_FILE_SIZE}"
 
-        result = download_file(url, str(dest_path))
-
-        # Verify download succeeded (returns None on success)
-        assert result is None
+        download_file(url, str(dest_path))
         # Verify file was created
         assert dest_path.exists()
         # Verify file has expected size (1024 bytes)
@@ -53,7 +50,7 @@ def test_download_file_basic_functionality():
             assert isinstance(content, bytes)
 
 
-def test_download_file_success():
+def test_download_file_success() -> None:
     """Test successful file download."""
     with tempfile.TemporaryDirectory() as temp_dir:
         dest_path = Path(temp_dir) / "test.pdf"
@@ -66,15 +63,13 @@ def test_download_file_success():
             mock_response.iter_content.return_value = [b"test data"]
             mock_get.return_value = mock_response
 
-            result = download_file("https://example.com/test.pdf", str(dest_path))
-
-            assert result is None
+            download_file("https://example.com/test.pdf", str(dest_path))
             assert dest_path.exists()
             with dest_path.open("rb") as f:
                 assert f.read() == b"test data"
 
 
-def test_download_file_http_error():
+def test_download_file_http_error() -> None:
     """Test download with HTTP error response."""
     with tempfile.TemporaryDirectory() as temp_dir:
         dest_path = Path(temp_dir) / "test.pdf"
@@ -95,7 +90,7 @@ def test_download_file_http_error():
             assert not dest_path.exists()
 
 
-def test_download_file_network_timeout():
+def test_download_file_network_timeout() -> None:
     """Test download with network timeout."""
     with tempfile.TemporaryDirectory() as temp_dir:
         dest_path = Path(temp_dir) / "test.pdf"
@@ -110,7 +105,7 @@ def test_download_file_network_timeout():
             assert not dest_path.exists()
 
 
-def test_download_file_creates_directory():
+def test_download_file_creates_directory() -> None:
     """Test that download creates parent directories if they don't exist."""
     with tempfile.TemporaryDirectory() as temp_dir:
         nested_path = Path(temp_dir) / "nested" / "dir" / "test.pdf"
@@ -122,14 +117,13 @@ def test_download_file_creates_directory():
             mock_response.iter_content.return_value = [b"pdf content"]
             mock_get.return_value = mock_response
 
-            result = download_file("https://example.com/test.pdf", str(nested_path))
+            download_file("https://example.com/test.pdf", str(nested_path))
 
-            assert result is None
             assert nested_path.exists()
             assert nested_path.parent.exists()
 
 
-def test_download_file_progress_callback_with_content_length():
+def test_download_file_progress_callback_with_content_length() -> None:
     """Test progress callback with known Content-Length."""
     with tempfile.TemporaryDirectory() as temp_dir:
         dest_path = Path(temp_dir) / "test.pdf"
@@ -148,11 +142,10 @@ def test_download_file_progress_callback_with_content_length():
             mock_response.iter_content.return_value = [b"chunk001", b"chunk002"]
             mock_get.return_value = mock_response
 
-            result = download_file(
+            download_file(
                 "https://example.com/test.pdf", str(dest_path), progress_callback
             )
 
-            assert result is None
             assert dest_path.exists()
 
             # Verify progress was tracked correctly
@@ -167,7 +160,7 @@ def test_download_file_progress_callback_with_content_length():
             )  # Second chunk: 16 bytes downloaded, 16 total
 
 
-def test_download_file_progress_callback_without_content_length():
+def test_download_file_progress_callback_without_content_length() -> None:
     """Test progress callback when Content-Length header is missing."""
     with tempfile.TemporaryDirectory() as temp_dir:
         dest_path = Path(temp_dir) / "test.pdf"
@@ -185,11 +178,10 @@ def test_download_file_progress_callback_without_content_length():
             mock_response.iter_content.return_value = [b"data1", b"data2", b"data3"]
             mock_get.return_value = mock_response
 
-            result = download_file(
+            download_file(
                 "https://example.com/test.pdf", str(dest_path), progress_callback
             )
 
-            assert result is None
             assert dest_path.exists()
 
             # Verify progress was tracked with -1 for unknown total
@@ -199,7 +191,7 @@ def test_download_file_progress_callback_without_content_length():
             assert progress_calls[2] == (15, -1)  # 15 bytes downloaded, unknown total
 
 
-def test_download_file_progress_callback_invalid_content_length():
+def test_download_file_progress_callback_invalid_content_length() -> None:
     """Test progress callback when Content-Length header is invalid."""
     with tempfile.TemporaryDirectory() as temp_dir:
         dest_path = Path(temp_dir) / "test.pdf"
@@ -219,11 +211,10 @@ def test_download_file_progress_callback_invalid_content_length():
             mock_response.iter_content.return_value = [b"testdata"]
             mock_get.return_value = mock_response
 
-            result = download_file(
+            download_file(
                 "https://example.com/test.pdf", str(dest_path), progress_callback
             )
 
-            assert result is None
             assert dest_path.exists()
 
             # Verify progress was tracked with -1 for invalid total
@@ -234,7 +225,7 @@ def test_download_file_progress_callback_invalid_content_length():
             )  # 8 bytes downloaded, invalid total treated as unknown
 
 
-def test_download_file_no_progress_callback():
+def test_download_file_no_progress_callback() -> None:
     """Test that download works normally when no progress callback is provided."""
     with tempfile.TemporaryDirectory() as temp_dir:
         dest_path = Path(temp_dir) / "test.pdf"
@@ -247,15 +238,14 @@ def test_download_file_no_progress_callback():
             mock_get.return_value = mock_response
 
             # Call without progress callback (None is the default)
-            result = download_file("https://example.com/test.pdf", str(dest_path))
+            download_file("https://example.com/test.pdf", str(dest_path))
 
-            assert result is None
             assert dest_path.exists()
             with dest_path.open("rb") as f:
                 assert f.read() == b"test data"
 
 
-def test_download_file_progress_callback_error_handling():
+def test_download_file_progress_callback_error_handling() -> None:
     """Test that callback errors don't break the download."""
     with tempfile.TemporaryDirectory() as temp_dir:
         dest_path = Path(temp_dir) / "test.pdf"
@@ -273,17 +263,16 @@ def test_download_file_progress_callback_error_handling():
 
             # The download should succeed despite callback failure
             # Callback errors should not break the download
-            result = download_file(
+            download_file(
                 "https://example.com/test.pdf", str(dest_path), failing_callback
             )
 
-            assert result is None
             assert dest_path.exists()
             # Verify file content was still written correctly
             assert dest_path.read_bytes() == b"test data"
 
 
-def test_calculate_retry_delay_default_values():
+def test_calculate_retry_delay_default_values() -> None:
     """Test retry delay calculation with default configuration."""
     # First retry (attempt 0): 1.0 * (2.0 ** 0) = 1.0
     assert calculate_retry_delay(0) == 1.0
@@ -295,7 +284,7 @@ def test_calculate_retry_delay_default_values():
     assert calculate_retry_delay(2) == 4.0  # noqa: PLR2004
 
 
-def test_calculate_retry_delay_custom_values():
+def test_calculate_retry_delay_custom_values() -> None:
     """Test retry delay calculation with custom initial delay and multiplier."""
     # Custom initial delay of 0.5 seconds, multiplier of 3.0
     # First retry: 0.5 * (3.0 ** 0) = 0.5
@@ -308,12 +297,12 @@ def test_calculate_retry_delay_custom_values():
     assert calculate_retry_delay(2, initial_delay=0.5, multiplier=3.0) == 4.5  # noqa: PLR2004
 
 
-def test_with_retry_successful_execution_after_retries():
+def test_with_retry_successful_execution_after_retries() -> None:
     """Test that with_retry eventually succeeds after some failures."""
 
     call_count = 0
 
-    def flaky_function():
+    def flaky_function() -> str:
         nonlocal call_count
         call_count += 1
         if call_count < MAX_RETRY_ATTEMPTS:  # Fail first 2 attempts
@@ -332,12 +321,12 @@ def test_with_retry_successful_execution_after_retries():
     assert call_count == MAX_RETRY_ATTEMPTS
 
 
-def test_with_retry_exhausted_retries_scenario():
+def test_with_retry_exhausted_retries_scenario() -> None:
     """Test that with_retry raises the final exception when all retries are exhausted."""
 
     call_count = 0
 
-    def always_failing_function():
+    def always_failing_function() -> str:
         nonlocal call_count
         call_count += 1
         always_fails_msg = ALWAYS_FAILS_MSG
@@ -357,12 +346,12 @@ def test_with_retry_exhausted_retries_scenario():
     )  # Initial attempt + 2 retries = 3 total calls
 
 
-def test_with_retry_non_retryable_exception_handling():
+def test_with_retry_non_retryable_exception_handling() -> None:
     """Test that with_retry immediately re-raises exceptions not in the retryable list."""
 
     call_count = 0
 
-    def function_with_non_retryable_error():
+    def function_with_non_retryable_error() -> str:
         nonlocal call_count
         call_count += 1
         no_retry_msg = NO_RETRY_MSG
@@ -380,12 +369,12 @@ def test_with_retry_non_retryable_exception_handling():
     assert call_count == 1  # Should only be called once, no retries
 
 
-def test_with_retry_proper_delay_calculation_integration():
+def test_with_retry_proper_delay_calculation_integration() -> None:
     """Test that with_retry correctly calls calculate_retry_delay() for each retry."""
 
     call_count = 0
 
-    def failing_function():
+    def failing_function() -> str:
         nonlocal call_count
         call_count += 1
         always_fails_msg = ALWAYS_FAILS_MSG
@@ -409,12 +398,12 @@ def test_with_retry_proper_delay_calculation_integration():
         assert sleep_calls[1] == SECOND_DELAY  # Second retry: 1.0 * (2.0 ** 1) = 2.0
 
 
-def test_with_retry_zero_retries():
+def test_with_retry_zero_retries() -> None:
     """Test with_retry behavior with zero retries (should fail immediately)."""
 
     call_count = 0
 
-    def failing_function():
+    def failing_function() -> str:
         nonlocal call_count
         call_count += 1
         immediate_failure_msg = IMMEDIATE_FAILURE_MSG
@@ -431,12 +420,12 @@ def test_with_retry_zero_retries():
     assert call_count == 1  # Only initial attempt, no retries
 
 
-def test_with_retry_empty_exception_tuple():
+def test_with_retry_empty_exception_tuple() -> None:
     """Test with_retry with empty retryable_exceptions tuple."""
 
     call_count = 0
 
-    def failing_function():
+    def failing_function() -> str:
         nonlocal call_count
         call_count += 1
         no_retry_expected_msg = NO_RETRY_EXPECTED_MSG
@@ -449,12 +438,12 @@ def test_with_retry_empty_exception_tuple():
     assert call_count == 1  # Should not retry when exception tuple is empty
 
 
-def test_with_retry_successful_first_attempt():
+def test_with_retry_successful_first_attempt() -> None:
     """Test with_retry when function succeeds on first attempt (no retries needed)."""
 
     call_count = 0
 
-    def successful_function():
+    def successful_function() -> str:
         nonlocal call_count
         call_count += 1
         return "immediate success"
@@ -469,12 +458,12 @@ def test_with_retry_successful_first_attempt():
     assert call_count == 1  # Should only be called once
 
 
-def test_with_retry_multiple_retryable_exceptions():
+def test_with_retry_multiple_retryable_exceptions() -> None:
     """Test with_retry with multiple exception types in retryable_exceptions."""
 
     call_count = 0
 
-    def function_with_multiple_errors():
+    def function_with_multiple_errors() -> str:
         nonlocal call_count
         call_count += 1
         if call_count == FIRST_ATTEMPT:
@@ -499,13 +488,13 @@ def test_with_retry_multiple_retryable_exceptions():
     assert call_count == MAX_RETRY_ATTEMPTS
 
 
-def test_download_file_with_retry_integration():
+def test_download_file_with_retry_integration() -> None:
     """Test that download_file integrates retry logic for network failures."""
     with tempfile.TemporaryDirectory() as temp_dir:
         dest_path = Path(temp_dir) / "retry_test.bin"
         call_count = 0
 
-        def mock_requests_get(url, timeout=None):  # noqa: ARG001
+        def mock_requests_get(url: str, timeout: int | None = None) -> MagicMock:  # noqa: ARG001
             nonlocal call_count
             call_count += 1
             if call_count < MAX_RETRY_ATTEMPTS:
@@ -531,13 +520,13 @@ def test_download_file_with_retry_integration():
         assert call_count == MAX_RETRY_ATTEMPTS
 
 
-def test_download_file_retry_respects_http_errors():
+def test_download_file_retry_respects_http_errors() -> None:
     """Test that download_file does NOT retry HTTP errors (only network errors)."""
     with tempfile.TemporaryDirectory() as temp_dir:
         dest_path = Path(temp_dir) / "http_error_test.bin"
         call_count = 0
 
-        def mock_requests_get(url, timeout=None):  # noqa: ARG001
+        def mock_requests_get(url: str, timeout: int | None = None) -> MagicMock:  # noqa: ARG001
             nonlocal call_count
             call_count += 1
             # Return 404 HTTP error immediately

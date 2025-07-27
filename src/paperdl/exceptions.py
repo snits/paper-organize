@@ -1,21 +1,21 @@
 # ABOUTME: Custom exception classes for paper-dl error handling
 # ABOUTME: Defines specific error types with user-friendly messages and debugging details
 
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 
 class PaperDLError(Exception):
     """Base exception for paper-dl errors.
-    
+
     Provides structured error handling with user-friendly messages
     and debugging details.
     """
-    
+
     def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
         super().__init__(message)
         self.message = message
         self.details = details or {}
-    
+
     def user_message(self) -> str:
         """Return a user-friendly error message."""
         return self.message
@@ -23,7 +23,7 @@ class PaperDLError(Exception):
 
 class NetworkError(PaperDLError):
     """Network-related errors during download operations."""
-    
+
     def user_message(self) -> str:
         """Return a user-friendly network error message."""
         return f"Network error: {self.message}"
@@ -31,18 +31,23 @@ class NetworkError(PaperDLError):
 
 class HTTPError(NetworkError):
     """HTTP-specific errors with status code information."""
-    
-    def __init__(self, message: str, status_code: Optional[int] = None, 
-                 url: Optional[str] = None, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(
+        self,
+        message: str,
+        status_code: Optional[int] = None,
+        url: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+    ):
         details = details or {}
         if status_code is not None:
-            details['status_code'] = status_code
+            details["status_code"] = status_code
         if url is not None:
-            details['url'] = url
+            details["url"] = url
         super().__init__(message, details)
         self.status_code = status_code
         self.url = url
-    
+
     def user_message(self) -> str:
         """Return a user-friendly HTTP error message."""
         if self.status_code:
@@ -52,15 +57,19 @@ class HTTPError(NetworkError):
 
 class FileSystemError(PaperDLError):
     """File system operation errors."""
-    
-    def __init__(self, message: str, path: Optional[str] = None, 
-                 details: Optional[Dict[str, Any]] = None):
+
+    def __init__(
+        self,
+        message: str,
+        path: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+    ):
         details = details or {}
         if path is not None:
-            details['path'] = path
+            details["path"] = path
         super().__init__(message, details)
         self.path = path
-    
+
     def user_message(self) -> str:
         """Return a user-friendly file system error message."""
         if self.path:
@@ -70,18 +79,23 @@ class FileSystemError(PaperDLError):
 
 class ValidationError(PaperDLError):
     """Input validation and data format errors."""
-    
-    def __init__(self, message: str, field: Optional[str] = None, 
-                 value: Optional[Any] = None, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(
+        self,
+        message: str,
+        field: Optional[str] = None,
+        value: Optional[Any] = None,
+        details: Optional[Dict[str, Any]] = None,
+    ):
         details = details or {}
         if field is not None:
-            details['field'] = field
+            details["field"] = field
         if value is not None:
-            details['value'] = value
+            details["value"] = value
         super().__init__(message, details)
         self.field = field
         self.value = value
-    
+
     def user_message(self) -> str:
         """Return a user-friendly validation error message."""
         if self.field:

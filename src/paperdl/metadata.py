@@ -1,9 +1,16 @@
 # ABOUTME: PDF metadata extraction and filename generation logic
 # ABOUTME: Extracts titles/authors from PDFs and creates filesystem-safe names
 
+import datetime
+import logging
 import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Any, List, Optional
+
+# Constants for academic year validation
+MIN_ACADEMIC_YEAR = 1900
+MAX_YEAR_OFFSET = 5
 
 try:
     from pypdf import PdfReader
@@ -20,6 +27,13 @@ try:
     import pdf2doi  # type: ignore[import-untyped]
 except ImportError:
     pdf2doi = None
+
+logger = logging.getLogger(__name__)
+
+def _is_valid_academic_year(year: int) -> bool:
+    """Check if year is reasonable for academic papers."""
+    current_year = datetime.datetime.now(tz=datetime.timezone.utc).year
+    return MIN_ACADEMIC_YEAR <= year <= current_year + MAX_YEAR_OFFSET
 
 
 @dataclass
@@ -59,7 +73,52 @@ def extract_pdf_metadata(pdf_path: str) -> PaperMetadata:
     # Layer 2: Try pdf2doi for academic identifiers
     _extract_with_pdf2doi(pdf_path, metadata)
 
+    # Layer 3: Extract year from title if not found yet
+    if not metadata.year and metadata.title:
+        _extract_year_from_title(metadata.title, metadata)
+
     return metadata
+
+
+def _extract_year_from_pdf_dates(pdf_meta: dict, metadata: PaperMetadata) -> None:
+    """Extract year from PDF creation or modification dates."""
+    for date_field in ["/CreationDate", "/ModDate"]:
+        if pdf_meta.get(date_field) and not metadata.year:
+            try:
+                date_str = str(pdf_meta[date_field])
+                # Extract year from date string (format: D:YYYYMMDDHHmmSSOHH'mm')
+                year_match = re.search(r"D:(\d{4})", date_str)
+                if year_match:
+                    year = int(year_match.group(1))
+                    if _is_valid_academic_year(year):
+                        metadata.year = year
+                        break
+            except (ValueError, TypeError):
+                continue
+
+
+def _extract_year_from_title(title: str, metadata: PaperMetadata) -> None:
+    """Extract year from paper title as fallback method."""
+    # Look for 4-digit years in parentheses or brackets (common in academic titles)
+    year_patterns = [
+        r"\((\d{4})\)",  # (2024)
+        r"\[(\d{4})\]",  # [2024]
+        r"\b(\d{4})\b",  # standalone 4-digit number
+    ]
+
+    for pattern in year_patterns:
+        matches = re.findall(pattern, title)
+        if matches:
+            # Take the last match (most likely to be publication year)
+            try:
+                year = int(matches[-1])
+                # Sanity check: reasonable year range for academic papers
+                if _is_valid_academic_year(year):
+                    metadata.year = year
+                    logger.debug("Extracted year %d from title: %s", year, title)
+                    return
+            except ValueError:
+                continue
 
 
 def _extract_with_pypdf(pdf_path: str, metadata: PaperMetadata) -> None:
@@ -86,9 +145,13 @@ def _extract_with_pypdf(pdf_path: str, metadata: PaperMetadata) -> None:
                     if author.strip()
                 ]
 
-    except Exception:
-        # Continue gracefully if pypdf fails
-        pass
+            # Extract year from PDF dates
+            if not metadata.year:
+                _extract_year_from_pdf_dates(pdf_meta, metadata)
+
+    except Exception as e:
+        # Log error but continue gracefully if pypdf fails
+        logger.debug("Failed to extract metadata with pypdf from %s: %s", pdf_path, e)
 
 
 def _extract_with_pdf2doi(pdf_path: str, metadata: PaperMetadata) -> None:
@@ -107,9 +170,9 @@ def _extract_with_pdf2doi(pdf_path: str, metadata: PaperMetadata) -> None:
             elif identifier_type == "arxiv":
                 metadata.arxiv_id = identifier
 
-    except Exception:
-        # Continue gracefully if pdf2doi fails
-        pass
+    except Exception as e:
+        # Log error but continue gracefully if pdf2doi fails
+        logger.debug("Failed to extract identifiers with pdf2doi from %s: %s", pdf_path, e)
 
 
 def generate_filename(metadata: PaperMetadata, fallback_name: str) -> str:
@@ -190,16 +253,38 @@ def _sanitize_filename_part(text: str) -> str:
     if not text:
         return ""
 
-    # Handle accented characters first (basic approach)
-    sanitized = text.replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
-    sanitized = sanitized.replace("ñ", "n").replace("ç", "c")
-    sanitized = sanitized.replace("à", "a").replace("è", "e").replace("ì", "i").replace("ò", "o").replace("ù", "u")
+    # Normalize Unicode characters to ASCII equivalents
+    # This handles accented characters properly (á->a, ñ->n, etc.)
+    try:
+        sanitized = unicodedata.normalize("NFKD", text)
+        sanitized = sanitized.encode("ascii", "ignore").decode("ascii")
+    except (UnicodeError, UnicodeDecodeError):
+        # Fallback to original text if Unicode normalization fails
+        logger.debug("Unicode normalization failed for text: %s", text)
+        sanitized = text
 
-    # Replace problematic characters with underscores or remove them
-    sanitized = re.sub(r'[&/\\:*?"<>|]', "_", sanitized)  # Replace filesystem-unsafe chars with underscore
-    sanitized = re.sub(r"[^\w\s_-]", "", sanitized)  # Remove remaining special chars, keep word chars, spaces, underscores, hyphens
-    sanitized = re.sub(r"[\s]+", "_", sanitized)  # Replace spaces with underscores
-    sanitized = re.sub(r"_+", "_", sanitized)  # Collapse multiple underscores
+    # Replace filesystem-unsafe characters with underscores
+    # Covers: / \ : * ? " < > | & ( ) [ ] { } . % $ # @ ! ^ ` ~ + = ; ' ,
+    sanitized = re.sub(r'[/\\:*?"<>|&()\[\]{}\.%$#@!^`~+=;\',]', "_", sanitized)
 
-    # Remove leading/trailing underscores
-    return sanitized.strip("_")
+    # Remove any remaining non-alphanumeric characters except hyphens and underscores
+    sanitized = re.sub(r"[^\w\s_-]", "", sanitized)
+
+    # Replace multiple whitespace with single underscore
+    sanitized = re.sub(r"[\s]+", "_", sanitized)
+
+    # Collapse multiple underscores into single underscore
+    sanitized = re.sub(r"_+", "_", sanitized)
+
+    # Remove leading/trailing underscores and validate length
+    sanitized = sanitized.strip("_")
+
+    # Ensure component isn't too long (filesystem limits)
+    max_component_length = 50
+    if len(sanitized) > max_component_length:
+        # Truncate but try to preserve word boundaries
+        truncated = sanitized[:max_component_length].rsplit("_", 1)[0]
+        sanitized = truncated if truncated else sanitized[:max_component_length]
+        logger.debug("Truncated filename component: %s -> %s", text, sanitized)
+
+    return sanitized

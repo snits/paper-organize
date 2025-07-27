@@ -4,7 +4,20 @@
 import tempfile
 from unittest.mock import MagicMock, patch
 
-from paperdl.metadata import PaperMetadata, extract_pdf_metadata, generate_filename
+from paperdl.metadata import (
+    PaperMetadata,
+    _extract_year_from_title,
+    extract_pdf_metadata,
+    generate_filename,
+)
+
+# Test constants to avoid magic numbers
+TEST_YEAR_2024 = 2024
+TEST_YEAR_2023 = 2023
+TEST_YEAR_2022 = 2022
+TEST_YEAR_1950 = 1950
+TEST_YEAR_2025 = 2025
+MAX_FILENAME_LENGTH = 100
 
 
 class TestPaperMetadata:
@@ -24,7 +37,7 @@ class TestPaperMetadata:
         assert metadata.authors == ["John Doe", "Jane Smith"]
         assert metadata.doi == "10.1234/example.doi"
         assert metadata.arxiv_id == "2401.12345"
-        assert metadata.year == 2024
+        assert metadata.year == TEST_YEAR_2024
 
     def test_paper_metadata_optional_fields(self) -> None:
         """Test PaperMetadata with only some fields populated."""
@@ -63,6 +76,7 @@ class TestExtractPdfMetadata:
             result = extract_pdf_metadata(tmp_file.name)
 
         assert result.title == "Test Paper Title"
+        assert result.authors is not None
         assert "John Doe" in result.authors
         assert "Jane Smith" in result.authors
 
@@ -110,7 +124,7 @@ class TestExtractPdfMetadata:
     @patch("paperdl.metadata.pdf2doi.pdf2doi")
     @patch("paperdl.metadata.PdfReader")
     def test_extract_handles_missing_file(self, mock_pdf_reader: MagicMock,
-                                        mock_pdf2doi: MagicMock) -> None:
+                                        _mock_pdf2doi: MagicMock) -> None:
         """Test graceful handling of missing PDF file."""
         mock_pdf_reader.side_effect = FileNotFoundError("File not found")
 
@@ -195,7 +209,7 @@ class TestGenerateFilename:
         result = generate_filename(metadata, "original.pdf")
 
         # Should truncate title but keep readable
-        assert len(result) <= 100  # Reasonable filename length
+        assert len(result) <= MAX_FILENAME_LENGTH  # Reasonable filename length
         assert result.startswith("Smith_2024_A_Very_Long_Title")
         assert result.endswith(".pdf")
 
@@ -274,3 +288,88 @@ class TestGenerateFilename:
 
         assert " " not in result
         assert result == "Last_2024_Title_With_Many_Spaces.pdf"
+
+
+class TestYearExtraction:
+    """Test year extraction from titles and PDF metadata."""
+
+    def test_extract_year_from_title_parentheses(self) -> None:
+        """Test year extraction from title with parentheses."""
+        metadata = PaperMetadata(title="Machine Learning Survey (2024)")
+        _extract_year_from_title("Machine Learning Survey (2024)", metadata)
+        assert metadata.year == TEST_YEAR_2024
+
+    def test_extract_year_from_title_brackets(self) -> None:
+        """Test year extraction from title with brackets."""
+        metadata = PaperMetadata(title="Deep Learning Advances [2023]")
+        _extract_year_from_title("Deep Learning Advances [2023]", metadata)
+        assert metadata.year == TEST_YEAR_2023
+
+    def test_extract_year_from_title_standalone(self) -> None:
+        """Test year extraction from standalone year in title."""
+        metadata = PaperMetadata(title="AI Research 2022 Overview")
+        _extract_year_from_title("AI Research 2022 Overview", metadata)
+        assert metadata.year == TEST_YEAR_2022
+
+    def test_extract_year_from_title_multiple_years(self) -> None:
+        """Test year extraction when multiple years present - should take last."""
+        metadata = PaperMetadata(title="Comparing 2020 vs 2024 ML Methods")
+        _extract_year_from_title("Comparing 2020 vs 2024 ML Methods", metadata)
+        assert metadata.year == TEST_YEAR_2024
+
+    def test_extract_year_from_title_invalid_range(self) -> None:
+        """Test year extraction rejects years outside valid range."""
+        metadata = PaperMetadata(title="Historical Analysis 1850-1950")
+        _extract_year_from_title("Historical Analysis 1850-1950", metadata)
+        # Should reject 1850 as too old, accept 1950 as valid
+        assert metadata.year == TEST_YEAR_1950
+
+    def test_extract_year_from_title_no_year(self) -> None:
+        """Test year extraction when no year found in title."""
+        metadata = PaperMetadata(title="Modern Machine Learning Techniques")
+        _extract_year_from_title("Modern Machine Learning Techniques", metadata)
+        assert metadata.year is None
+
+    @patch("paperdl.metadata.PdfReader")
+    def test_extract_year_from_pdf_creation_date(self, mock_pdf_reader: MagicMock) -> None:
+        """Test year extraction from PDF creation date."""
+        mock_reader = MagicMock()
+        mock_reader.metadata = {
+            "/Title": "Test Paper",
+            "/CreationDate": "D:20240315142530+00'00'"
+        }
+        mock_pdf_reader.return_value = mock_reader
+
+        with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
+            result = extract_pdf_metadata(tmp_file.name)
+
+        assert result.year == TEST_YEAR_2024
+
+    @patch("paperdl.metadata.PdfReader")
+    def test_extract_year_from_pdf_mod_date_fallback(self, mock_pdf_reader: MagicMock) -> None:
+        """Test year extraction from PDF modification date as fallback."""
+        mock_reader = MagicMock()
+        mock_reader.metadata = {
+            "/Title": "Test Paper",
+            "/ModDate": "D:20230815142530+00'00'"
+        }
+        mock_pdf_reader.return_value = mock_reader
+
+        with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
+            result = extract_pdf_metadata(tmp_file.name)
+
+        assert result.year == TEST_YEAR_2023
+
+    @patch("paperdl.metadata.PdfReader")
+    def test_extract_year_from_title_fallback(self, mock_pdf_reader: MagicMock) -> None:
+        """Test year extraction from title when PDF metadata has no dates."""
+        mock_reader = MagicMock()
+        mock_reader.metadata = {
+            "/Title": "Machine Learning Research (2025)"
+        }
+        mock_pdf_reader.return_value = mock_reader
+
+        with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
+            result = extract_pdf_metadata(tmp_file.name)
+
+        assert result.year == TEST_YEAR_2025

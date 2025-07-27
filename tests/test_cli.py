@@ -6,7 +6,7 @@ from click.testing import CliRunner
 from paperdl.cli import main
 
 
-def test_cli_help():
+def test_cli_help() -> None:
     """Test CLI help output contains expected content."""
     runner = CliRunner()
     result = runner.invoke(main, ["--help"])
@@ -19,7 +19,7 @@ def test_cli_help():
     assert "--verbose" in result.output
 
 
-def test_cli_requires_url():
+def test_cli_requires_url() -> None:
     """Test CLI fails gracefully when no URL provided."""
     runner = CliRunner()
     result = runner.invoke(main, [])
@@ -28,7 +28,7 @@ def test_cli_requires_url():
     assert "Missing argument" in result.output or "Usage:" in result.output
 
 
-def test_cli_with_url():
+def test_cli_with_url() -> None:
     """Test CLI accepts URL argument and downloads successfully."""
     runner = CliRunner()
     result = runner.invoke(main, ["https://arxiv.org/abs/2301.00001"])
