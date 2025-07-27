@@ -2,7 +2,6 @@
 # ABOUTME: Handles fetching PDFs from URLs with network error handling
 
 import contextlib
-import time
 from pathlib import Path
 from typing import Callable, Optional
 from urllib.parse import urlparse
@@ -13,66 +12,78 @@ from .exceptions import FileSystemError, HTTPError, NetworkError, ValidationErro
 
 # Retry configuration constants
 MAX_NETWORK_RETRIES = 3  # Network timeouts and connection errors
-MAX_SERVER_ERROR_RETRIES = 2  # HTTP 5xx server errors  
+MAX_SERVER_ERROR_RETRIES = 2  # HTTP 5xx server errors
 INITIAL_RETRY_DELAY = 1.0  # Initial delay in seconds
 BACKOFF_MULTIPLIER = 2.0  # Exponential backoff multiplier
 
 
-def calculate_retry_delay(attempt: int, initial_delay: float = INITIAL_RETRY_DELAY, 
-                         multiplier: float = BACKOFF_MULTIPLIER) -> float:
+def calculate_retry_delay(
+    attempt: int,
+    initial_delay: float = INITIAL_RETRY_DELAY,
+    multiplier: float = BACKOFF_MULTIPLIER,
+) -> float:
     """Calculate exponential backoff delay for retry attempts.
-    
+
     Args:
         attempt: Current retry attempt number (0-based)
         initial_delay: Base delay in seconds
         multiplier: Exponential growth factor
-        
+
     Returns:
         Calculated delay in seconds for this attempt
-        
+
     Examples:
         >>> calculate_retry_delay(0)  # First retry
         1.0
-        >>> calculate_retry_delay(1)  # Second retry  
+        >>> calculate_retry_delay(1)  # Second retry
         2.0
         >>> calculate_retry_delay(2)  # Third retry
         4.0
     """
-    return initial_delay * (multiplier ** attempt)
+    return initial_delay * (multiplier**attempt)
 
 
 def _validate_download_inputs(url: str, destination_path: str) -> None:
     """Validate download function inputs.
-    
+
     Args:
         url: Source URL to download from
         destination_path: Local file path to save to
-        
+
     Raises:
         ValidationError: If inputs are invalid
     """
     if not url or not isinstance(url, str):
-        raise ValidationError("URL must be a non-empty string", field="url", value=url)
+        msg = "URL must be a non-empty string"
+        raise ValidationError(msg, field="url", value=url)
 
     if not destination_path or not isinstance(destination_path, str):
-        raise ValidationError("Destination path must be a non-empty string",
-                            field="destination_path", value=destination_path)
+        msg = "Destination path must be a non-empty string"
+        raise ValidationError(
+            msg,
+            field="destination_path",
+            value=destination_path,
+        )
 
     # Basic URL validation
     parsed = urlparse(url)
     if not parsed.scheme or not parsed.netloc:
-        raise ValidationError("URL must have a valid scheme and hostname",
-                            field="url", value=url)
+        msg = "URL must have a valid scheme and hostname"
+        raise ValidationError(
+            msg, field="url", value=url
+        )
 
     if parsed.scheme not in ("http", "https"):
-        raise ValidationError("URL must use HTTP or HTTPS protocol",
-                            field="url", value=url)
+        msg = "URL must use HTTP or HTTPS protocol"
+        raise ValidationError(
+            msg, field="url", value=url
+        )
 
 
 def download_file(
     url: str,
     destination_path: str,
-    progress_callback: Optional[Callable[[int, int], None]] = None
+    progress_callback: Optional[Callable[[int, int], None]] = None,
 ) -> None:
     """Download a file from URL to destination path.
 
@@ -98,31 +109,32 @@ def download_file(
     try:
         dest_path.parent.mkdir(parents=True, exist_ok=True)
     except OSError as e:
+        msg = f"Cannot create parent directory: {e}"
         raise FileSystemError(
-            f"Cannot create parent directory: {e}",
-            path=str(dest_path.parent)
+            msg, path=str(dest_path.parent)
         ) from e
     # Download file with network error handling
     try:
         response = requests.get(url, timeout=30)
     except requests.exceptions.Timeout as e:
-        raise NetworkError("Request timed out after 30 seconds",
-                         details={"url": url}) from e
+        msg = "Request timed out after 30 seconds"
+        raise NetworkError(
+            msg, details={"url": url}
+        ) from e
     except requests.exceptions.ConnectionError as e:
-        raise NetworkError(f"Connection failed: {e}",
-                         details={"url": url}) from e
+        msg = f"Connection failed: {e}"
+        raise NetworkError(msg, details={"url": url}) from e
     except requests.exceptions.RequestException as e:
-        raise NetworkError(f"Request failed: {e}",
-                         details={"url": url}) from e
+        msg = f"Request failed: {e}"
+        raise NetworkError(msg, details={"url": url}) from e
 
     # Handle HTTP errors
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
+        msg = f"HTTP request failed: {e}"
         raise HTTPError(
-            f"HTTP request failed: {e}",
-            status_code=response.status_code,
-            url=url
+            msg, status_code=response.status_code, url=url
         ) from e
 
     # Extract total size from Content-Length header
@@ -143,9 +155,9 @@ def download_file(
                         f.write(chunk)
                         bytes_downloaded += len(chunk)
                     except OSError as e:
+                        msg = f"Failed to write to file: {e}"
                         raise FileSystemError(
-                            f"Failed to write to file: {e}",
-                            path=str(dest_path)
+                            msg, path=str(dest_path)
                         ) from e
 
                     # Call progress callback if provided
@@ -158,10 +170,8 @@ def download_file(
         if dest_path.exists():
             with contextlib.suppress(OSError):
                 dest_path.unlink()
-        raise FileSystemError(
-            f"File operation failed: {e}",
-            path=str(dest_path)
-        ) from e
+        msg = f"File operation failed: {e}"
+        raise FileSystemError(msg, path=str(dest_path)) from e
 
     except Exception:
         # Clean up partial file on any other error
@@ -176,7 +186,8 @@ def download_file(
         if dest_path.exists():
             with contextlib.suppress(OSError):
                 dest_path.unlink()
+        msg = f"Download incomplete: expected {total_bytes} bytes, got {bytes_downloaded} bytes"
         raise ValidationError(
-            f"Download incomplete: expected {total_bytes} bytes, got {bytes_downloaded} bytes",
-            details={"expected_bytes": total_bytes, "actual_bytes": bytes_downloaded}
+            msg,
+            details={"expected_bytes": total_bytes, "actual_bytes": bytes_downloaded},
         )
