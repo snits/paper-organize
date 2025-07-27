@@ -99,3 +99,6 @@ paper.pdf
 # Temporary files
 tmp/
 temp/
+
+# Personal development configuration
+.claude-local.md
