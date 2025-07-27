@@ -657,7 +657,7 @@ wheels = [
 ]
 
 [[package]]
-name = "paper-dl"
+name = "paper-organize"
 version = "1.0.0"
 source = { editable = "." }
 dependencies = [

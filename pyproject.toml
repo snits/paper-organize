@@ -1,7 +1,7 @@
 [project]
 name = "paper-organize"
 version = "1.0.0"
-description = "Command-line utility for downloading academic papers with descriptive filenames"
+description = "Command-line utility for organizing academic papers with intelligent metadata extraction and descriptive filenames"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -23,7 +23,7 @@ classifiers = [
     "Topic :: Scientific/Engineering",
     "Topic :: Utilities",
 ]
-keywords = ["academic", "papers", "pdf", "arxiv", "research", "cli", "download"]
+keywords = ["academic", "papers", "pdf", "arxiv", "research", "cli", "organize", "metadata"]
 dependencies = [
     "click>=8.0.0",
     "requests>=2.25.0",
@@ -47,10 +47,26 @@ target-version = "py38"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "C90", "I", "N", "UP", "B", "A", "C4", "DTZ", "T10", "EM", "G", "PIE", "T20", "Q", "RSE", "RET", "SIM", "TID", "TCH", "ARG", "PTH", "FBT", "TD", "FIX", "ERA", "PL", "TRY", "FLY", "NPY", "PERF", "FURB", "LOG", "RUF"]
-ignore = ["E501", "PLR0913", "PLR0912", "PLR0915", "TD003", "FIX002"]
+ignore = [
+    "E501", "PLR0913", "PLR0912", "PLR0915", "TD003", "FIX002",
+    # Exception formatting - our ValidationError pattern with rich details is intentional
+    "TRY003",  # Allow long exception messages for better UX
+    "EM102",   # Allow f-strings in exceptions for clarity
+    "TRY300",  # Allow return after if without else - common Python pattern
+]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/test_cli.py" = ["ARG001", "FBT001", "FBT002", "PLR2004", "TRY003"]
+"tests/*" = [
+    "ARG001",   # Unused arguments in test mocks are common and acceptable
+    "ARG002",   # Unused method arguments in test fixtures
+    "FBT003",   # Boolean positional args in test data/mocks are clear in context
+    "PLR2004",  # Magic numbers in tests (2, 3, etc.) are clear and don't need constants
+]
+"tests/test_cli.py" = [
+    "FBT001",   # Boolean-typed positional argument (specific to this file)
+    "FBT002",   # Boolean default positional argument (specific to this file) 
+    "TRY003",   # Long exception messages (specific to this file)
+]
 
 [tool.mypy]
 python_version = "3.13"
