@@ -538,7 +538,9 @@ def test_download_file_retry_respects_http_errors() -> None:
             )
             return mock_response
 
-        with patch("paperdl.download.requests.get", side_effect=mock_requests_get), pytest.raises(HTTPError):
+        with patch(
+            "paperdl.download.requests.get", side_effect=mock_requests_get
+        ), pytest.raises(HTTPError):
             # HTTP errors should NOT be retried
             download_file("https://example.com/missing.pdf", str(dest_path))
 

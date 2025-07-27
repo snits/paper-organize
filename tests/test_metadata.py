@@ -31,7 +31,7 @@ class TestPaperMetadata:
             authors=["John Doe", "Jane Smith"],
             doi="10.1234/example.doi",
             arxiv_id="2401.12345",
-            year=2024
+            year=2024,
         )
 
         assert metadata.title == "Machine Learning Fundamentals"
@@ -43,11 +43,7 @@ class TestPaperMetadata:
     def test_paper_metadata_optional_fields(self) -> None:
         """Test PaperMetadata with only some fields populated."""
         metadata = PaperMetadata(
-            title="Minimal Paper",
-            authors=None,
-            doi=None,
-            arxiv_id=None,
-            year=None
+            title="Minimal Paper", authors=None, doi=None, arxiv_id=None, year=None
         )
 
         assert metadata.title == "Minimal Paper"
@@ -69,7 +65,7 @@ class TestExtractPdfMetadata:
             "/Title": "Test Paper Title",
             "/Author": "John Doe, Jane Smith",
             "/Creator": "LaTeX",
-            "/Subject": "Machine Learning"
+            "/Subject": "Machine Learning",
         }
         mock_pdf_reader.return_value = mock_reader
 
@@ -83,8 +79,9 @@ class TestExtractPdfMetadata:
 
     @patch("paperdl.metadata.pdf2doi.pdf2doi")
     @patch("paperdl.metadata.PdfReader")
-    def test_extract_with_pdf2doi_fallback(self, mock_pdf_reader: MagicMock,
-                                         mock_pdf2doi: MagicMock) -> None:
+    def test_extract_with_pdf2doi_fallback(
+        self, mock_pdf_reader: MagicMock, mock_pdf2doi: MagicMock
+    ) -> None:
         """Test fallback to pdf2doi when pypdf metadata is insufficient."""
         # Setup pypdf with minimal metadata
         mock_reader = MagicMock()
@@ -94,7 +91,7 @@ class TestExtractPdfMetadata:
         # Setup pdf2doi with DOI result
         mock_pdf2doi.return_value = {
             "identifier": "10.1234/example.doi",
-            "identifier_type": "doi"
+            "identifier_type": "doi",
         }
 
         with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
@@ -105,8 +102,9 @@ class TestExtractPdfMetadata:
 
     @patch("paperdl.metadata.pdf2doi.pdf2doi")
     @patch("paperdl.metadata.PdfReader")
-    def test_extract_arxiv_id(self, mock_pdf_reader: MagicMock,
-                             mock_pdf2doi: MagicMock) -> None:
+    def test_extract_arxiv_id(
+        self, mock_pdf_reader: MagicMock, mock_pdf2doi: MagicMock
+    ) -> None:
         """Test extraction of arXiv identifier."""
         mock_reader = MagicMock()
         mock_reader.metadata = {}
@@ -114,7 +112,7 @@ class TestExtractPdfMetadata:
 
         mock_pdf2doi.return_value = {
             "identifier": "2401.12345",
-            "identifier_type": "arxiv"
+            "identifier_type": "arxiv",
         }
 
         with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
@@ -124,8 +122,9 @@ class TestExtractPdfMetadata:
 
     @patch("paperdl.metadata.pdf2doi.pdf2doi")
     @patch("paperdl.metadata.PdfReader")
-    def test_extract_handles_missing_file(self, mock_pdf_reader: MagicMock,
-                                        _mock_pdf2doi: MagicMock) -> None:
+    def test_extract_handles_missing_file(
+        self, mock_pdf_reader: MagicMock, _mock_pdf2doi: MagicMock
+    ) -> None:
         """Test graceful handling of missing PDF file."""
         mock_pdf_reader.side_effect = FileNotFoundError("File not found")
 
@@ -140,8 +139,9 @@ class TestExtractPdfMetadata:
 
     @patch("paperdl.metadata.pdf2doi.pdf2doi")
     @patch("paperdl.metadata.PdfReader")
-    def test_extract_handles_corrupted_pdf(self, mock_pdf_reader: MagicMock,
-                                         mock_pdf2doi: MagicMock) -> None:
+    def test_extract_handles_corrupted_pdf(
+        self, mock_pdf_reader: MagicMock, mock_pdf2doi: MagicMock
+    ) -> None:
         """Test graceful handling of corrupted PDF file."""
         mock_pdf_reader.side_effect = Exception("PDF parsing error")
         mock_pdf2doi.side_effect = Exception("pdf2doi error")
@@ -165,7 +165,7 @@ class TestGenerateFilename:
         metadata = PaperMetadata(
             title="Machine Learning: A Comprehensive Survey",
             authors=["John Doe", "Jane Smith"],
-            year=2024
+            year=2024,
         )
 
         result = generate_filename(metadata, "original.pdf")
@@ -178,7 +178,7 @@ class TestGenerateFilename:
         metadata = PaperMetadata(
             title="Deep Neural Networks",
             authors=["Alice Johnson", "Bob Wilson", "Carol Davis"],
-            year=2023
+            year=2023,
         )
 
         result = generate_filename(metadata, "original.pdf")
@@ -189,9 +189,7 @@ class TestGenerateFilename:
     def test_generate_filename_special_characters(self) -> None:
         """Test filename sanitization with special characters."""
         metadata = PaperMetadata(
-            title="AI & ML: The Future/Present?",
-            authors=["Dr. María José"],
-            year=2024
+            title="AI & ML: The Future/Present?", authors=["Dr. María José"], year=2024
         )
 
         result = generate_filename(metadata, "original.pdf")
@@ -204,7 +202,7 @@ class TestGenerateFilename:
         metadata = PaperMetadata(
             title="A Very Long Title That Exceeds Normal Filesystem Limits And Should Be Truncated To Prevent Issues With File Operations",
             authors=["John Smith"],
-            year=2024
+            year=2024,
         )
 
         result = generate_filename(metadata, "original.pdf")
@@ -217,9 +215,7 @@ class TestGenerateFilename:
     def test_generate_filename_missing_year(self) -> None:
         """Test filename generation when year is missing."""
         metadata = PaperMetadata(
-            title="Recent Advances in AI",
-            authors=["Jane Doe"],
-            year=None
+            title="Recent Advances in AI", authors=["Jane Doe"], year=None
         )
 
         result = generate_filename(metadata, "original.pdf")
@@ -229,11 +225,7 @@ class TestGenerateFilename:
 
     def test_generate_filename_no_authors(self) -> None:
         """Test filename generation when authors are missing."""
-        metadata = PaperMetadata(
-            title="Anonymous Paper",
-            authors=[],
-            year=2024
-        )
+        metadata = PaperMetadata(title="Anonymous Paper", authors=[], year=2024)
 
         result = generate_filename(metadata, "original.pdf")
 
@@ -242,11 +234,7 @@ class TestGenerateFilename:
 
     def test_generate_filename_minimal_metadata(self) -> None:
         """Test filename generation with only title."""
-        metadata = PaperMetadata(
-            title="Minimal Paper",
-            authors=[],
-            year=None
-        )
+        metadata = PaperMetadata(title="Minimal Paper", authors=[], year=None)
 
         result = generate_filename(metadata, "original.pdf")
 
@@ -254,11 +242,7 @@ class TestGenerateFilename:
 
     def test_generate_filename_fallback_to_original(self) -> None:
         """Test fallback to original filename when metadata is insufficient."""
-        metadata = PaperMetadata(
-            title=None,
-            authors=[],
-            year=None
-        )
+        metadata = PaperMetadata(title=None, authors=[], year=None)
 
         result = generate_filename(metadata, "research_paper.pdf")
 
@@ -267,11 +251,7 @@ class TestGenerateFilename:
 
     def test_generate_filename_preserve_extension(self) -> None:
         """Test that PDF extension is always preserved."""
-        metadata = PaperMetadata(
-            title="Test Paper",
-            authors=["Author"],
-            year=2024
-        )
+        metadata = PaperMetadata(title="Test Paper", authors=["Author"], year=2024)
 
         result = generate_filename(metadata, "document.pdf")
 
@@ -280,9 +260,7 @@ class TestGenerateFilename:
     def test_generate_filename_no_spaces_in_output(self) -> None:
         """Test that generated filenames contain no spaces."""
         metadata = PaperMetadata(
-            title="Title With Many Spaces",
-            authors=["First Last"],
-            year=2024
+            title="Title With Many Spaces", authors=["First Last"], year=2024
         )
 
         result = generate_filename(metadata, "original.pdf")
@@ -332,12 +310,14 @@ class TestYearExtraction:
         assert metadata.year is None
 
     @patch("paperdl.metadata.PdfReader")
-    def test_extract_year_from_pdf_creation_date(self, mock_pdf_reader: MagicMock) -> None:
+    def test_extract_year_from_pdf_creation_date(
+        self, mock_pdf_reader: MagicMock
+    ) -> None:
         """Test year extraction from PDF creation date."""
         mock_reader = MagicMock()
         mock_reader.metadata = {
             "/Title": "Test Paper",
-            "/CreationDate": "D:20240315142530+00'00'"
+            "/CreationDate": "D:20240315142530+00'00'",
         }
         mock_pdf_reader.return_value = mock_reader
 
@@ -347,12 +327,14 @@ class TestYearExtraction:
         assert result.year == TEST_YEAR_2024
 
     @patch("paperdl.metadata.PdfReader")
-    def test_extract_year_from_pdf_mod_date_fallback(self, mock_pdf_reader: MagicMock) -> None:
+    def test_extract_year_from_pdf_mod_date_fallback(
+        self, mock_pdf_reader: MagicMock
+    ) -> None:
         """Test year extraction from PDF modification date as fallback."""
         mock_reader = MagicMock()
         mock_reader.metadata = {
             "/Title": "Test Paper",
-            "/ModDate": "D:20230815142530+00'00'"
+            "/ModDate": "D:20230815142530+00'00'",
         }
         mock_pdf_reader.return_value = mock_reader
 
@@ -365,9 +347,7 @@ class TestYearExtraction:
     def test_extract_year_from_title_fallback(self, mock_pdf_reader: MagicMock) -> None:
         """Test year extraction from title when PDF metadata has no dates."""
         mock_reader = MagicMock()
-        mock_reader.metadata = {
-            "/Title": "Machine Learning Research (2025)"
-        }
+        mock_reader.metadata = {"/Title": "Machine Learning Research (2025)"}
         mock_pdf_reader.return_value = mock_reader
 
         with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:

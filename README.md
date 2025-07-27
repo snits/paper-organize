@@ -59,8 +59,26 @@ paper-dl --help
 # Usage: paper-dl [OPTIONS] URL
 # 
 # Options:
+#   --dir DIRECTORY   Directory to save file to (overrides PAPERS_DIR)
+#   --name TEXT       Custom filename for the download  
 #   --no-auto-name    Skip metadata extraction and use original filename
+#   --quiet          Suppress output for scripting
+#   --verbose        Show detailed output
 #   --help           Show this message and exit
+#
+# Directory Priority: --dir > PAPERS_DIR environment variable > ~/Papers (default)
+```
+
+### Environment Variables
+```bash
+# Set default download directory
+export PAPERS_DIR="$HOME/Research/Papers"
+
+# Now all downloads go to ~/Research/Papers by default
+paper-dl https://arxiv.org/pdf/2506.21734
+
+# Override for specific download
+paper-dl https://arxiv.org/pdf/2506.21734 --dir ./references/
 ```
 
 ## How It Works

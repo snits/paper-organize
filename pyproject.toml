@@ -8,6 +8,22 @@ authors = [
     { name = "Jerry Snitselaar", email = "dev@snitselaar.org" }
 ]
 requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Utilities",
+]
+keywords = ["academic", "papers", "pdf", "arxiv", "research", "cli", "download"]
 dependencies = [
     "click>=8.0.0",
     "requests>=2.25.0",
@@ -32,6 +48,9 @@ target-version = "py38"
 [tool.ruff.lint]
 select = ["E", "F", "W", "C90", "I", "N", "UP", "B", "A", "C4", "DTZ", "T10", "EM", "G", "PIE", "T20", "Q", "RSE", "RET", "SIM", "TID", "TCH", "ARG", "PTH", "FBT", "TD", "FIX", "ERA", "PL", "TRY", "FLY", "NPY", "PERF", "FURB", "LOG", "RUF"]
 ignore = ["E501", "PLR0913", "PLR0912", "PLR0915", "TD003", "FIX002"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/test_cli.py" = ["ARG001", "FBT001", "FBT002", "PLR2004", "TRY003"]
 
 [tool.mypy]
 python_version = "3.13"

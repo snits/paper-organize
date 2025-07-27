@@ -15,10 +15,12 @@ MAX_YEAR_OFFSET = 5
 
 try:
     from pypdf import PdfReader
+
     PDF_READER_AVAILABLE = True
 except ImportError:
     try:
         from PyPDF2 import PdfReader  # type: ignore[assignment]
+
         PDF_READER_AVAILABLE = True
     except ImportError:
         PDF_READER_AVAILABLE = False
@@ -31,6 +33,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
 def _is_valid_academic_year(year: int) -> bool:
     """Check if year is reasonable for academic papers."""
     current_year = datetime.datetime.now(tz=datetime.timezone.utc).year
@@ -40,6 +43,7 @@ def _is_valid_academic_year(year: int) -> bool:
 @dataclass
 class PaperMetadata:
     """Structured metadata for academic papers."""
+
     title: Optional[str] = None
     authors: Optional[List[str]] = None
     doi: Optional[str] = None
@@ -173,7 +177,9 @@ def _extract_with_pdf2doi(pdf_path: str, metadata: PaperMetadata) -> None:
 
     except Exception as e:
         # Log error but continue gracefully if pdf2doi fails
-        logger.debug("Failed to extract identifiers with pdf2doi from %s: %s", pdf_path, e)
+        logger.debug(
+            "Failed to extract identifiers with pdf2doi from %s: %s", pdf_path, e
+        )
 
 
 def generate_filename(metadata: PaperMetadata, fallback_name: str) -> str:

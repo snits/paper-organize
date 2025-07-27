@@ -2,6 +2,7 @@
 # ABOUTME: Handles argument parsing, validation, and main entry point
 # SPDX-License-Identifier: MIT
 
+import os
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -18,12 +19,92 @@ from .exceptions import (
 from .metadata import extract_pdf_metadata, generate_filename
 
 
-def _setup_download_directory(directory: str | None) -> Path:
-    """Set up and return the download directory."""
-    download_dir = Path.cwd() if directory is None else Path(directory).expanduser()
+def _determine_download_directory(directory: str | None) -> Path:
+    """Determine download directory following UX hierarchy: --dir > PAPERS_DIR > ~/Papers > cwd.
 
-    download_dir.mkdir(parents=True, exist_ok=True)
-    return download_dir
+    Note: Does not create directories, just determines the path.
+    """
+    if directory is not None:
+        # 1. Command line --dir flag (highest priority)
+        return Path(directory).expanduser()
+
+    if papers_dir := os.environ.get("PAPERS_DIR"):
+        # 2. PAPERS_DIR environment variable
+        return Path(papers_dir).expanduser()
+
+    # 3. Default: ~/Papers (will be created by _setup_download_directory)
+    return Path.home() / "Papers"
+
+
+def _setup_download_directory(
+    directory: str | None, *, quiet: bool = False
+) -> tuple[Path, bool]:
+    """Set up and return the download directory with first-run messaging.
+
+    Returns:
+        Tuple of (directory_path, is_first_run_papers_dir)
+    """
+    # Check first-run condition BEFORE calling _determine_download_directory
+    papers_dir = Path.home() / "Papers"
+    is_first_run = (
+        directory is None
+        and os.environ.get("PAPERS_DIR") is None
+        and not papers_dir.exists()
+    )
+
+    # Now determine directory (but not create yet)
+    download_dir = _determine_download_directory(directory)
+
+    # Create directory with fallback logic
+    try:
+        download_dir.mkdir(parents=True, exist_ok=True)
+    except (OSError, PermissionError) as e:
+        # If we were trying to create ~/Papers and failed, fallback to current directory
+        if (
+            download_dir == papers_dir
+            and directory is None
+            and os.environ.get("PAPERS_DIR") is None
+        ):
+            download_dir = Path.cwd()
+            is_first_run = False  # Not first run if we fallback
+            try:
+                download_dir.mkdir(parents=True, exist_ok=True)
+            except (OSError, PermissionError) as fallback_e:
+                suggested_fix = (
+                    "Set PAPERS_DIR or use --dir to specify a writable location"
+                )
+                error_message = f"Cannot create directory '{download_dir}'"
+                raise FileSystemError(
+                    error_message,
+                    details={
+                        "directory": str(download_dir),
+                        "error": str(fallback_e),
+                        "suggestion": suggested_fix,
+                    },
+                ) from fallback_e
+        else:
+            # For custom directories, fail with helpful message
+            suggested_fix = "Set PAPERS_DIR or use --dir to specify a writable location"
+            error_message = f"Cannot create directory '{download_dir}'"
+            raise FileSystemError(
+                error_message,
+                details={
+                    "directory": str(download_dir),
+                    "error": str(e),
+                    "suggestion": suggested_fix,
+                },
+            ) from e
+
+    # Show first-run message for ~/Papers creation
+    if is_first_run and not quiet:
+        click.echo(
+            f"📁 Created {papers_dir} directory for your downloaded papers", err=True
+        )
+        click.echo(
+            "   Use --dir to specify a different location, or set PAPERS_DIR", err=True
+        )
+
+    return download_dir, is_first_run
 
 
 def _determine_filename(name: str | None, url: str) -> str:
@@ -95,7 +176,9 @@ def _apply_metadata_naming(file_path: Path, *, quiet: bool) -> Path:
     except Exception as e:
         # If metadata extraction fails, log but don't fail the whole operation
         if not quiet:
-            click.echo(f"⚠ Could not extract metadata for intelligent naming: {e}", err=True)
+            click.echo(
+                f"⚠ Could not extract metadata for intelligent naming: {e}", err=True
+            )
         return file_path
 
 
@@ -110,22 +193,37 @@ def _handle_error(e: Exception, *, quiet: bool) -> None:  # noqa: ARG001
 
 @click.command()
 @click.argument("url")
-@click.option("--dir", "directory", help="Directory to save file to")
+@click.option(
+    "--dir", "directory", help="Directory to save file to (overrides PAPERS_DIR)"
+)
 @click.option("--name", help="Custom filename for the download")
-@click.option("--no-auto-name", is_flag=True, help="Disable automatic filename generation from PDF metadata")
+@click.option(
+    "--no-auto-name",
+    is_flag=True,
+    help="Disable automatic filename generation from PDF metadata",
+)
 @click.option("--quiet", is_flag=True, help="Suppress output for scripting")
 @click.option("--verbose", is_flag=True, help="Show detailed output")
 def main(
-    url: str, directory: str | None, name: str | None, *, no_auto_name: bool, quiet: bool, verbose: bool
+    url: str,
+    directory: str | None,
+    name: str | None,
+    *,
+    no_auto_name: bool,
+    quiet: bool,
+    verbose: bool,
 ) -> None:
-    """Download academic papers with descriptive filenames."""
+    """Download academic papers with descriptive filenames.
+
+    Directory Priority: --dir > PAPERS_DIR environment variable > ~/Papers (default)
+    """
     del verbose  # Currently unused, but reserved for future features
 
     if not quiet:
         click.echo(f"→ Downloading: {url}")
 
     try:
-        download_dir = _setup_download_directory(directory)
+        download_dir, is_first_run = _setup_download_directory(directory, quiet=quiet)
         filename = _determine_filename(name, url)
         destination_path = download_dir / filename
 

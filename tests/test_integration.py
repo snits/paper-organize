@@ -396,7 +396,9 @@ class TestCLIMetadataIntegration:
         assert "✓ Renamed to: Deep_Learning_Fundamentals.pdf" in result.output
 
     @patch("paperdl.cli.extract_pdf_metadata")
-    def test_auto_naming_falls_back_on_extraction_failure(self, mock_extract: MagicMock) -> None:
+    def test_auto_naming_falls_back_on_extraction_failure(
+        self, mock_extract: MagicMock
+    ) -> None:
         """Test that auto-naming falls back gracefully when metadata extraction fails."""
         # Mock metadata extraction to raise an exception
         mock_extract.side_effect = Exception("PDF parsing failed")
@@ -418,7 +420,9 @@ class TestCLIMetadataIntegration:
         assert "✓ Renamed to:" not in result.output
 
     @patch("paperdl.cli.extract_pdf_metadata")
-    def test_auto_naming_handles_filename_conflicts(self, mock_extract: MagicMock) -> None:
+    def test_auto_naming_handles_filename_conflicts(
+        self, mock_extract: MagicMock
+    ) -> None:
         """Test that auto-naming handles filename conflicts by adding numbers."""
 
         # Mock metadata extraction
