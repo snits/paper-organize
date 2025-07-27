@@ -78,3 +78,24 @@ Thumbs.db
 
 # uv
 .uv/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Project-specific test files
+test_output/
+*.pdf
+test_download.pdf
+paper.pdf
+
+# Temporary files
+tmp/
+temp/
