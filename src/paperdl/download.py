@@ -2,6 +2,7 @@
 # ABOUTME: Handles fetching PDFs from URLs with network error handling
 
 import contextlib
+import time
 from pathlib import Path
 from typing import Callable, Optional
 from urllib.parse import urlparse
@@ -9,6 +10,12 @@ from urllib.parse import urlparse
 import requests
 
 from .exceptions import FileSystemError, HTTPError, NetworkError, ValidationError
+
+# Retry configuration constants
+MAX_NETWORK_RETRIES = 3  # Network timeouts and connection errors
+MAX_SERVER_ERROR_RETRIES = 2  # HTTP 5xx server errors  
+INITIAL_RETRY_DELAY = 1.0  # Initial delay in seconds
+BACKOFF_MULTIPLIER = 2.0  # Exponential backoff multiplier
 
 
 def _validate_download_inputs(url: str, destination_path: str) -> None:
