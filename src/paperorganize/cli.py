@@ -1,14 +1,12 @@
 # ABOUTME: Command-line interface for paper-organize with Click framework
-# ABOUTME: Handles argument parsing, validation, and main entry point
+# ABOUTME: Handles unified input processing (URLs, files, directories) with intelligent organization
 # SPDX-License-Identifier: MIT
 
 import os
 from pathlib import Path
-from urllib.parse import urlparse
 
 import click
 
-from .download import download_file
 from .exceptions import (
     FileSystemError,
     HTTPError,
@@ -16,7 +14,8 @@ from .exceptions import (
     PaperDLError,
     ValidationError,
 )
-from .metadata import extract_pdf_metadata, generate_filename
+from .input_detection import InputType, detect_input_type
+from .processors import DirectoryProcessor, FileProcessor, URLProcessor
 
 
 def _determine_download_directory(directory: str | None) -> Path:
@@ -107,79 +106,8 @@ def _setup_download_directory(
     return download_dir, is_first_run
 
 
-def _determine_filename(name: str | None, url: str) -> str:
-    """Determine the filename for the download."""
-    if name is None:
-        # Extract filename from URL
-        parsed_url = urlparse(url)
-        filename = Path(parsed_url.path).name
-        if not filename or not filename.endswith(".pdf"):
-            filename = "paper.pdf"
-    else:
-        filename = name
-        if not filename.endswith(".pdf"):
-            filename += ".pdf"
-    return filename
-
-
-def _perform_metadata_rename(file_path: Path, *, quiet: bool) -> Path:
-    """Perform the actual metadata-based rename operation.
-
-    Args:
-        file_path: Current path to downloaded PDF
-        quiet: Whether to suppress output messages
-
-    Returns:
-        Path: Final path after potential renaming
-    """
-    # Extract metadata from PDF
-    metadata = extract_pdf_metadata(str(file_path))
-
-    # Generate new filename from metadata
-    new_filename = generate_filename(metadata, file_path.name)
-
-    # If filename unchanged, return original path
-    if new_filename == file_path.name:
-        return file_path
-
-    # Handle filename conflicts
-    new_path = file_path.parent / new_filename
-    counter = 1
-    original_new_path = new_path
-    while new_path.exists():
-        stem = original_new_path.stem
-        suffix = original_new_path.suffix
-        new_path = file_path.parent / f"{stem}_{counter}{suffix}"
-        counter += 1
-
-    # Perform the rename
-    file_path.rename(new_path)
-
-    if not quiet:
-        click.echo(f"✓ Renamed to: {new_path.name}")
-
-    return new_path
-
-
-def _apply_metadata_naming(file_path: Path, *, quiet: bool) -> Path:
-    """Extract PDF metadata and rename file with intelligent filename.
-
-    Args:
-        file_path: Current path to downloaded PDF
-        quiet: Whether to suppress output messages
-
-    Returns:
-        Path: Final path after potential renaming
-    """
-    try:
-        return _perform_metadata_rename(file_path, quiet=quiet)
-    except Exception as e:
-        # If metadata extraction fails, log but don't fail the whole operation
-        if not quiet:
-            click.echo(
-                f"⚠ Could not extract metadata for intelligent naming: {e}", err=True
-            )
-        return file_path
+# Note: Helper functions for filename determination and metadata processing
+# have been moved to the processor classes for better organization
 
 
 def _handle_error(e: Exception, *, quiet: bool) -> None:  # noqa: ARG001
@@ -192,11 +120,13 @@ def _handle_error(e: Exception, *, quiet: bool) -> None:  # noqa: ARG001
 
 
 @click.command()
-@click.argument("url")
+@click.argument("input_arg", metavar="INPUT")
 @click.option(
-    "--dir", "directory", help="Directory to save file to (overrides PAPERS_DIR)"
+    "--dir",
+    "directory",
+    help="Directory to save organized files (overrides PAPERS_DIR)",
 )
-@click.option("--name", help="Custom filename for the download")
+@click.option("--name", help="Custom filename for the organized file")
 @click.option(
     "--no-auto-name",
     is_flag=True,
@@ -205,7 +135,7 @@ def _handle_error(e: Exception, *, quiet: bool) -> None:  # noqa: ARG001
 @click.option("--quiet", is_flag=True, help="Suppress output for scripting")
 @click.option("--verbose", is_flag=True, help="Show detailed output")
 def main(
-    url: str,
+    input_arg: str,
     directory: str | None,
     name: str | None,
     *,
@@ -213,31 +143,47 @@ def main(
     quiet: bool,
     verbose: bool,
 ) -> None:
-    """Organize academic papers with descriptive filenames.
+    """Organize academic papers with intelligent metadata extraction and descriptive filenames.
+
+    INPUT can be:
+      • URL          Download and organize a paper from the web
+      • PDF file     Organize an existing PDF file
+      • Directory    Batch organize all PDFs in a directory
 
     Directory Priority: --dir > PAPERS_DIR environment variable > ~/Papers (default)
     """
     del verbose  # Currently unused, but reserved for future features
 
-    if not quiet:
-        click.echo(f"→ Downloading: {url}")
-
     try:
-        download_dir, is_first_run = _setup_download_directory(directory, quiet=quiet)
-        filename = _determine_filename(name, url)
-        destination_path = download_dir / filename
+        # Detect input type
+        input_type = detect_input_type(input_arg)
 
-        # Perform download
-        download_file(url, str(destination_path))
+        # Set up destination directory
+        destination_dir, is_first_run = _setup_download_directory(
+            directory, quiet=quiet
+        )
 
-        if not quiet:
-            click.echo(f"✓ Downloaded to: {destination_path}")
+        # Select appropriate processor
+        processor: URLProcessor | FileProcessor | DirectoryProcessor
+        if input_type == InputType.URL:
+            processor = URLProcessor()
+        elif input_type == InputType.FILE:
+            processor = FileProcessor()
+        else:  # InputType.DIRECTORY
+            processor = DirectoryProcessor()
 
-        # Apply metadata-based naming if enabled and user didn't provide custom name
-        if not no_auto_name and name is None:
-            final_path = _apply_metadata_naming(destination_path, quiet=quiet)
-            if final_path != destination_path:
-                destination_path = final_path
+        # Process input
+        results = processor.process(
+            input_arg,
+            destination_dir,
+            name,
+            auto_name=not no_auto_name,
+            quiet=quiet,
+        )
+
+        # Show summary if not quiet
+        if not quiet and len(results) > 1:
+            click.echo(f"\n📊 Summary: Processed {len(results)} files")
 
     except (
         ValidationError,
