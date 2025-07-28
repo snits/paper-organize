@@ -7,6 +7,10 @@ from unittest.mock import MagicMock, patch
 
 from paperorganize.metadata import (
     PaperMetadata,
+    _extract_authors_from_info,
+    _extract_title_from_info,
+    _extract_validation_info,
+    _extract_year_from_info,
     _extract_year_from_title,
     extract_pdf_metadata,
     generate_filename,
@@ -354,3 +358,376 @@ class TestYearExtraction:
             result = extract_pdf_metadata(tmp_file.name)
 
         assert result.year == TEST_YEAR_2025
+
+
+class TestValidationInfoExtraction:
+    """Test validation_info parsing functions from pdf2doi."""
+
+    def test_extract_validation_info_complete(self) -> None:
+        """Test extracting complete metadata from validation_info JSON."""
+        validation_info = """{
+            "title": "Mastering Chess and Shogi by Self-Play",
+            "author": [
+                {"family": "Silver", "given": "David"},
+                {"family": "Hubert", "given": "Thomas"}
+            ],
+            "issued": {"date-parts": [[2017]]}
+        }"""
+
+        metadata = PaperMetadata()
+        _extract_validation_info(validation_info, metadata)
+
+        assert metadata.title == "Mastering Chess and Shogi by Self-Play"
+        assert metadata.authors == ["David Silver", "Thomas Hubert"]
+        assert metadata.year == 2017
+
+    def test_extract_validation_info_malformed_json(self) -> None:
+        """Test handling of malformed JSON in validation_info."""
+        metadata = PaperMetadata()
+
+        # Should not raise exception with invalid JSON
+        _extract_validation_info("invalid json {", metadata)
+
+        # Metadata should remain unchanged
+        assert metadata.title is None
+        assert metadata.authors == []
+        assert metadata.year is None
+
+    def test_extract_validation_info_empty_string(self) -> None:
+        """Test handling of empty validation_info."""
+        metadata = PaperMetadata()
+        _extract_validation_info("", metadata)
+
+        assert metadata.title is None
+        assert metadata.authors == []
+        assert metadata.year is None
+
+    def test_extract_validation_info_missing_fields(self) -> None:
+        """Test validation_info with missing fields."""
+        validation_info = '{"other_field": "value"}'
+        metadata = PaperMetadata()
+
+        _extract_validation_info(validation_info, metadata)
+
+        assert metadata.title is None
+        assert metadata.authors == []
+        assert metadata.year is None
+
+    def test_extract_validation_info_preserves_existing(self) -> None:
+        """Test that existing metadata is not overwritten."""
+        validation_info = """{
+            "title": "New Title",
+            "author": [{"family": "New", "given": "Author"}],
+            "issued": {"date-parts": [[2023]]}
+        }"""
+
+        # Create metadata with existing values
+        metadata = PaperMetadata(
+            title="Existing Title", authors=["Existing Author"], year=2022
+        )
+
+        _extract_validation_info(validation_info, metadata)
+
+        # Existing values should be preserved
+        assert metadata.title == "Existing Title"
+        assert metadata.authors == ["Existing Author"]
+        assert metadata.year == 2022
+
+
+class TestTitleExtraction:
+    """Test title extraction from validation_info."""
+
+    def test_extract_title_from_info_success(self) -> None:
+        """Test successful title extraction."""
+        info = {"title": "  Deep Learning Fundamentals  "}
+        metadata = PaperMetadata()
+
+        _extract_title_from_info(info, metadata)
+
+        assert metadata.title == "Deep Learning Fundamentals"  # Stripped
+
+    def test_extract_title_from_info_no_title(self) -> None:
+        """Test when title field is missing."""
+        info = {"other_field": "value"}
+        metadata = PaperMetadata()
+
+        _extract_title_from_info(info, metadata)
+
+        assert metadata.title is None
+
+    def test_extract_title_from_info_empty_title(self) -> None:
+        """Test when title field is empty."""
+        info = {"title": ""}
+        metadata = PaperMetadata()
+
+        _extract_title_from_info(info, metadata)
+
+        assert metadata.title is None
+
+    def test_extract_title_from_info_preserves_existing(self) -> None:
+        """Test that existing title is not overwritten."""
+        info = {"title": "New Title"}
+        metadata = PaperMetadata(title="Existing Title")
+
+        _extract_title_from_info(info, metadata)
+
+        assert metadata.title == "Existing Title"
+
+
+class TestAuthorsExtraction:
+    """Test author extraction from validation_info."""
+
+    def test_extract_authors_structured_format(self) -> None:
+        """Test extraction of authors in structured format."""
+        info = {
+            "author": [
+                {"family": "Doe", "given": "John"},
+                {"family": "Smith", "given": "Jane"},
+                {"family": "Johnson"},  # Only family name
+            ]
+        }
+        metadata = PaperMetadata()
+
+        _extract_authors_from_info(info, metadata)
+
+        assert metadata.authors == ["John Doe", "Jane Smith", "Johnson"]
+
+    def test_extract_authors_string_format(self) -> None:
+        """Test extraction when authors are strings."""
+        info = {"author": ["John Doe", "Jane Smith"]}
+        metadata = PaperMetadata()
+
+        _extract_authors_from_info(info, metadata)
+
+        assert metadata.authors == ["John Doe", "Jane Smith"]
+
+    def test_extract_authors_mixed_format(self) -> None:
+        """Test extraction with mixed author formats."""
+        info = {
+            "author": [
+                {"family": "Doe", "given": "John"},
+                "Jane Smith",
+                {"family": "Johnson", "given": ""},  # Empty given name
+                {"given": "Bob"},  # Only given name - ignored by implementation
+            ]
+        }
+        metadata = PaperMetadata()
+
+        _extract_authors_from_info(info, metadata)
+
+        # Only given name is ignored (no family name)
+        assert metadata.authors == ["John Doe", "Jane Smith", "Johnson"]
+
+    def test_extract_authors_no_author_field(self) -> None:
+        """Test when author field is missing."""
+        info = {"title": "Some Title"}
+        metadata = PaperMetadata()
+
+        _extract_authors_from_info(info, metadata)
+
+        assert metadata.authors == []
+
+    def test_extract_authors_empty_author_list(self) -> None:
+        """Test when author field is empty list."""
+        info: dict[str, list[str]] = {"author": []}
+        metadata = PaperMetadata()
+
+        _extract_authors_from_info(info, metadata)
+
+        assert metadata.authors == []
+
+    def test_extract_authors_preserves_existing(self) -> None:
+        """Test that existing authors are not overwritten."""
+        info = {"author": [{"family": "New", "given": "Author"}]}
+        metadata = PaperMetadata(authors=["Existing Author"])
+
+        _extract_authors_from_info(info, metadata)
+
+        assert metadata.authors == ["Existing Author"]
+
+    def test_extract_authors_filters_empty_names(self) -> None:
+        """Test that empty author names are filtered out."""
+        info = {
+            "author": [
+                {"family": "Doe", "given": "John"},
+                {"family": "", "given": ""},  # Empty
+                "  ",  # Whitespace only
+                {"family": "Smith", "given": "Jane"},
+            ]
+        }
+        metadata = PaperMetadata()
+
+        _extract_authors_from_info(info, metadata)
+
+        assert metadata.authors == ["John Doe", "Jane Smith"]
+
+
+class TestYearExtractionFromInfo:
+    """Test year extraction from validation_info."""
+
+    def test_extract_year_from_info_success(self) -> None:
+        """Test successful year extraction."""
+        info = {"issued": {"date-parts": [[2023]]}}
+        metadata = PaperMetadata()
+
+        _extract_year_from_info(info, metadata)
+
+        assert metadata.year == 2023
+
+    def test_extract_year_from_info_no_issued(self) -> None:
+        """Test when issued field is missing."""
+        info = {"title": "Some Title"}
+        metadata = PaperMetadata()
+
+        _extract_year_from_info(info, metadata)
+
+        assert metadata.year is None
+
+    def test_extract_year_from_info_no_date_parts(self) -> None:
+        """Test when date-parts field is missing."""
+        info = {"issued": {"other_field": "value"}}
+        metadata = PaperMetadata()
+
+        _extract_year_from_info(info, metadata)
+
+        assert metadata.year is None
+
+    def test_extract_year_from_info_empty_date_parts(self) -> None:
+        """Test when date-parts is empty."""
+        info: dict[str, dict[str, list[list[int]]]] = {"issued": {"date-parts": []}}
+        metadata = PaperMetadata()
+
+        _extract_year_from_info(info, metadata)
+
+        assert metadata.year is None
+
+    def test_extract_year_from_info_malformed_date_parts(self) -> None:
+        """Test malformed date-parts structure."""
+        info: dict[str, dict[str, list[list[int]]]] = {
+            "issued": {"date-parts": [[]]}
+        }  # Empty inner array
+        metadata = PaperMetadata()
+
+        _extract_year_from_info(info, metadata)
+
+        assert metadata.year is None
+
+    def test_extract_year_from_info_invalid_year(self) -> None:
+        """Test with invalid year value."""
+        info = {"issued": {"date-parts": [[1800]]}}  # Too old
+        metadata = PaperMetadata()
+
+        _extract_year_from_info(info, metadata)
+
+        assert metadata.year is None
+
+    def test_extract_year_from_info_string_year(self) -> None:
+        """Test when year is a string instead of int."""
+        info = {"issued": {"date-parts": [["2023"]]}}
+        metadata = PaperMetadata()
+
+        _extract_year_from_info(info, metadata)
+
+        assert metadata.year is None  # Should reject non-int
+
+    def test_extract_year_from_info_preserves_existing(self) -> None:
+        """Test that existing year is not overwritten."""
+        info = {"issued": {"date-parts": [[2023]]}}
+        metadata = PaperMetadata(year=2022)
+
+        _extract_year_from_info(info, metadata)
+
+        assert metadata.year == 2022
+
+
+class TestPdf2doiCaseSensitivity:
+    """Test case sensitivity fix for pdf2doi identifier_type."""
+
+    @patch("paperorganize.metadata.pdf2doi")
+    def test_pdf2doi_case_insensitive_doi(self, mock_pdf2doi: MagicMock) -> None:
+        """Test that DOI is extracted regardless of case."""
+        # Mock pdf2doi to return "DOI" (uppercase) as it actually does
+        mock_pdf2doi.pdf2doi.return_value = {
+            "identifier": "10.48550/arxiv.1234.5678",
+            "identifier_type": "DOI",  # Uppercase as returned by real pdf2doi
+        }
+
+        with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
+            result = extract_pdf_metadata(tmp_file.name)
+
+        assert result.doi == "10.48550/arxiv.1234.5678"
+
+    @patch("paperorganize.metadata.pdf2doi")
+    def test_pdf2doi_case_insensitive_arxiv(self, mock_pdf2doi: MagicMock) -> None:
+        """Test that arXiv ID is extracted regardless of case."""
+        mock_pdf2doi.pdf2doi.return_value = {
+            "identifier": "1234.5678",
+            "identifier_type": "ARXIV",  # Uppercase
+        }
+
+        with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
+            result = extract_pdf_metadata(tmp_file.name)
+
+        assert result.arxiv_id == "1234.5678"
+
+    @patch("paperorganize.metadata.pdf2doi")
+    def test_pdf2doi_mixed_case_handling(self, mock_pdf2doi: MagicMock) -> None:
+        """Test handling of mixed case identifier types."""
+        mock_pdf2doi.pdf2doi.return_value = {
+            "identifier": "10.1234/test",
+            "identifier_type": "DoI",  # Mixed case
+        }
+
+        with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
+            result = extract_pdf_metadata(tmp_file.name)
+
+        assert result.doi == "10.1234/test"
+
+
+class TestPdf2doiRichMetadata:
+    """Test extraction of rich metadata from pdf2doi validation_info."""
+
+    @patch("paperorganize.metadata.pdf2doi")
+    def test_pdf2doi_with_validation_info(self, mock_pdf2doi: MagicMock) -> None:
+        """Test extraction when pdf2doi provides validation_info."""
+        validation_info = """{
+            "title": "Test Paper Title",
+            "author": [
+                {"family": "Test", "given": "Author"}
+            ],
+            "issued": {"date-parts": [[2023]]},
+            "DOI": "10.1234/test"
+        }"""
+
+        mock_pdf2doi.pdf2doi.return_value = {
+            "identifier": "10.1234/test",
+            "identifier_type": "DOI",
+            "validation_info": validation_info,
+        }
+
+        with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
+            result = extract_pdf_metadata(tmp_file.name)
+
+        assert result.title == "Test Paper Title"
+        assert result.authors == ["Author Test"]
+        assert result.year == 2023
+        assert result.doi == "10.1234/test"
+
+    @patch("paperorganize.metadata.pdf2doi")
+    def test_pdf2doi_validation_info_error_handling(
+        self, mock_pdf2doi: MagicMock
+    ) -> None:
+        """Test graceful handling of malformed validation_info."""
+        mock_pdf2doi.pdf2doi.return_value = {
+            "identifier": "10.1234/test",
+            "identifier_type": "DOI",
+            "validation_info": "invalid json {{",
+        }
+
+        with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
+            result = extract_pdf_metadata(tmp_file.name)
+
+        # Should still extract DOI but not crash on bad validation_info
+        assert result.doi == "10.1234/test"
+        assert result.title is None
+        assert result.authors == []

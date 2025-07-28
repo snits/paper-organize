@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 import datetime
+import json
 import logging
 import re
 import unicodedata
@@ -170,16 +171,74 @@ def _extract_with_pdf2doi(pdf_path: str, metadata: PaperMetadata) -> None:
             identifier = result.get("identifier", "")
             identifier_type = result.get("identifier_type", "")
 
-            if identifier_type == "doi":
+            # Fix case sensitivity issue - pdf2doi returns "DOI" not "doi"
+            if identifier_type.lower() == "doi":
                 metadata.doi = identifier
-            elif identifier_type == "arxiv":
+            elif identifier_type.lower() == "arxiv":
                 metadata.arxiv_id = identifier
+
+            # Extract rich metadata from validation_info if available
+            validation_info = result.get("validation_info")
+            if validation_info:
+                _extract_validation_info(validation_info, metadata)
 
     except Exception as e:
         # Log error but continue gracefully if pdf2doi fails
         logger.debug(
             "Failed to extract identifiers with pdf2doi from %s: %s", pdf_path, e
         )
+
+
+def _extract_validation_info(validation_info: Any, metadata: PaperMetadata) -> None:
+    """Extract metadata from pdf2doi validation_info (dict or JSON string)."""
+    try:
+        # Handle both parsed dict objects and JSON strings
+        if isinstance(validation_info, str):
+            info = json.loads(validation_info)
+        else:
+            # validation_info is already a parsed dict-like object
+            info = validation_info
+
+        _extract_title_from_info(info, metadata)
+        _extract_authors_from_info(info, metadata)
+        _extract_year_from_info(info, metadata)
+    except (json.JSONDecodeError, KeyError, IndexError, TypeError) as e:
+        logger.debug("Failed to parse validation_info from pdf2doi: %s", e)
+
+
+def _extract_title_from_info(info: dict, metadata: PaperMetadata) -> None:
+    """Extract title from validation info."""
+    if not metadata.title and info.get("title"):
+        metadata.title = info["title"].strip()
+
+
+def _extract_authors_from_info(info: dict, metadata: PaperMetadata) -> None:
+    """Extract authors from validation info."""
+    if not metadata.authors and info.get("author"):
+        authors = []
+        for author in info["author"]:
+            if isinstance(author, dict):
+                given = author.get("given", "")
+                family = author.get("family", "")
+                if given and family:
+                    authors.append(f"{given} {family}")
+                elif family:
+                    authors.append(family)
+            else:
+                authors.append(str(author))
+        metadata.authors = [a.strip() for a in authors if a.strip()]
+
+
+def _extract_year_from_info(info: dict, metadata: PaperMetadata) -> None:
+    """Extract year from validation info."""
+    if not metadata.year and info.get("issued"):
+        issued = info["issued"]
+        if isinstance(issued, dict) and "date-parts" in issued:
+            date_parts = issued["date-parts"]
+            if date_parts and len(date_parts[0]) > 0:
+                year = date_parts[0][0]
+                if isinstance(year, int) and _is_valid_academic_year(year):
+                    metadata.year = year
 
 
 def generate_filename(metadata: PaperMetadata, fallback_name: str) -> str:
