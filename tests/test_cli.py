@@ -277,7 +277,13 @@ def test_cli_with_file_input() -> None:
         test_pdf = Path("test.pdf")
         test_pdf.write_text("fake pdf content")
 
-        result = runner.invoke(main, [str(test_pdf), "--quiet", "--no-auto-name"])
+        # Clear PAPERS_DIR and force directory to current (isolated) directory
+        with patch.dict(os.environ, {}, clear=False):
+            if "PAPERS_DIR" in os.environ:
+                del os.environ["PAPERS_DIR"]
+            result = runner.invoke(
+                main, [str(test_pdf), "--dir", ".", "--quiet", "--no-auto-name"]
+            )
 
         assert result.exit_code == 0
 
@@ -296,7 +302,13 @@ def test_cli_with_directory_input() -> None:
         pdf1.write_text("fake pdf 1")
         pdf2.write_text("fake pdf 2")
 
-        result = runner.invoke(main, [str(test_dir), "--quiet", "--no-auto-name"])
+        # Clear PAPERS_DIR and force directory to current (isolated) directory
+        with patch.dict(os.environ, {}, clear=False):
+            if "PAPERS_DIR" in os.environ:
+                del os.environ["PAPERS_DIR"]
+            result = runner.invoke(
+                main, [str(test_dir), "--dir", ".", "--quiet", "--no-auto-name"]
+            )
 
         assert result.exit_code == 0
 
