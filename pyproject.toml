@@ -28,8 +28,11 @@ dependencies = [
     "click>=8.0.0",
     "requests>=2.25.0",
     "pypdf>=4.0.0",
-    "pdf2doi>=1.7",
+    "pdf2doi>=1.7",  # Will be removed in final commit
     "tqdm>=4.60.0",
+    # MIT-licensed replacements for pdf2doi
+    "pdfplumber>=0.9.0",  # Enhanced PDF text extraction
+    "arxiv>=2.1.0",       # Official arXiv API client
 ]
 
 [project.scripts]
