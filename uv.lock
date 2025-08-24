@@ -21,20 +21,6 @@ wheels = [
 ]
 
 [[package]]
-name = "beautifulsoup4"
-version = "4.13.4"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "soupsieve" },
-    { name = "typing-extensions", version = "4.13.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "typing-extensions", version = "4.14.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/d8/e4/0c4c39e18fd76d6a628d4dd8da40543d136ce2d1752bd6eeeab0791f4d6b/beautifulsoup4-4.13.4.tar.gz", hash = "sha256:dbb3c4e1ceae6aefebdaf2423247260cd062430a410e38c66f2baa50a8437195", size = 621067, upload-time = "2025-04-15T17:05:13.836Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/50/cd/30110dc0ffcf3b131156077b90e9f60ed75711223f306da4db08eff8403b/beautifulsoup4-4.13.4-py3-none-any.whl", hash = "sha256:9bbbb14bfde9d79f38b8cd5f8c7c85f4b8f2523190ebed90e950a8dea4cb1c4b", size = 187285, upload-time = "2025-04-15T17:05:12.221Z" },
-]
-
-[[package]]
 name = "certifi"
 version = "2025.7.14"
 source = { registry = "https://pypi.org/simple" }
@@ -486,15 +472,6 @@ wheels = [
 ]
 
 [[package]]
-name = "easygui"
-version = "0.98.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/cc/ad/e35f7a30272d322be09dc98592d2f55d27cc933a7fde8baccbbeb2bd9409/easygui-0.98.3.tar.gz", hash = "sha256:d653ff79ee1f42f63b5a090f2f98ce02335d86ad8963b3ce2661805cafe99a04", size = 85583, upload-time = "2022-04-01T13:15:50.752Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/8e/a7/b276ff776533b423710a285c8168b52551cb2ab0855443131fdc7fd8c16f/easygui-0.98.3-py2.py3-none-any.whl", hash = "sha256:33498710c68b5376b459cd3fc48d1d1f33822139eb3ed01defbc0528326da3ba", size = 92655, upload-time = "2022-04-01T13:15:49.568Z" },
-]
-
-[[package]]
 name = "exceptiongroup"
 version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -517,18 +494,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ff/aa/7af346ebeb42a76bf108027fe7f3328bb4e57a3a96e53e21fd9ef9dd6dd0/feedparser-6.0.11.tar.gz", hash = "sha256:c9d0407b64c6f2a065d0ebb292c2b35c01050cc0dc33757461aaabdc4c4184d5", size = 286197, upload-time = "2023-12-10T16:03:20.854Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7c/d4/8c31aad9cc18f451c49f7f9cfb5799dadffc88177f7917bc90a66459b1d7/feedparser-6.0.11-py3-none-any.whl", hash = "sha256:0be7ee7b395572b19ebeb1d6aafb0028dee11169f1c934e0ed67d54992f4ad45", size = 81343, upload-time = "2023-12-10T16:03:19.484Z" },
-]
-
-[[package]]
-name = "google"
-version = "3.0.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "beautifulsoup4" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/89/97/b49c69893cddea912c7a660a4b6102c6b02cd268f8c7162dd70b7c16f753/google-3.0.0.tar.gz", hash = "sha256:143530122ee5130509ad5e989f0512f7cb218b2d4eddbafbad40fd10e8d8ccbe", size = 44978, upload-time = "2020-07-11T14:50:45.678Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ac/35/17c9141c4ae21e9a29a43acdfd848e3e468a810517f862cad07977bf8fe9/google-3.0.0-py2.py3-none-any.whl", hash = "sha256:889cf695f84e4ae2c55fbc0cfdaf4c1e729417fa52ab1db0485202ba173e4935", size = 45258, upload-time = "2020-07-11T14:49:58.287Z" },
 ]
 
 [[package]]
@@ -677,7 +642,6 @@ dependencies = [
     { name = "arxiv" },
     { name = "click", version = "8.1.8", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "click", version = "8.2.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-    { name = "pdf2doi" },
     { name = "pdfplumber" },
     { name = "pypdf" },
     { name = "requests" },
@@ -703,6 +667,8 @@ test = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "pip-licenses", version = "4.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "pip-licenses", version = "5.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
     { name = "pytest", version = "8.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "pytest", version = "8.4.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
     { name = "pytest-cov", version = "5.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
@@ -716,7 +682,6 @@ requires-dist = [
     { name = "arxiv", specifier = ">=2.1.0" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0.0" },
-    { name = "pdf2doi", specifier = ">=1.7" },
     { name = "pdfplumber", specifier = ">=0.9.0" },
     { name = "pypdf", specifier = ">=4.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
@@ -731,6 +696,7 @@ provides-extras = ["test", "dev"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "pip-licenses", specifier = ">=4.5.1" },
     { name = "pytest", specifier = ">=8.3.5" },
     { name = "pytest-cov", specifier = ">=5.0.0" },
     { name = "types-requests", specifier = ">=2.32.0.20241016" },
@@ -743,28 +709,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ca/bc/f35b8446f4531a7cb215605d100cd88b7ac6f44ab3fc94870c120ab3adbf/pathspec-0.12.1.tar.gz", hash = "sha256:a482d51503a1ab33b1c67a6c3813a26953dbdc71c31dacaef9a838c4e29f5712", size = 51043, upload-time = "2023-12-10T22:30:45Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cc/20/ff623b09d963f88bfde16306a54e12ee5ea43e9b597108672ff3a408aad6/pathspec-0.12.1-py3-none-any.whl", hash = "sha256:a0d503e138a4c123b27490a4f7beda6a01c6f288df0e4a8b79c7eb0dc7b4cc08", size = 31191, upload-time = "2023-12-10T22:30:43.14Z" },
-]
-
-[[package]]
-name = "pdf2doi"
-version = "1.7"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "easygui" },
-    { name = "feedparser" },
-    { name = "google" },
-    { name = "pdfminer-six" },
-    { name = "pdftitle" },
-    { name = "pymupdf", version = "1.24.11", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "pymupdf", version = "1.26.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
-    { name = "pypdf" },
-    { name = "pypdf2" },
-    { name = "pyperclip" },
-    { name = "requests" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c5/6f/867dd20a2467f5f7a17ef10b514219fcc7e6b2ae872e1f792ca22f2fb1e1/pdf2doi-1.7.tar.gz", hash = "sha256:54d257bce59397ef577c588c8bc8a35930ffd1e7d05e7c3c454423bf5679bf2e", size = 38023, upload-time = "2024-11-10T20:54:44.288Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/44/fe/910803ac0a4948ea3cf2deb2a996bf5ed3954791c77053f044088361bbe5/pdf2doi-1.7-py3-none-any.whl", hash = "sha256:75d1de78acebe3ca004317bf695eb2520d642d41c7c07d56d4eb211a64216551", size = 33950, upload-time = "2024-11-10T20:54:42.705Z" },
 ]
 
 [[package]]
@@ -794,15 +738,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/25/b2/a3ebd1987165b088d
 wheels = [
     { url = "https://files.pythonhosted.org/packages/53/5c/4523bfce8ba473b0e33931f9638f69c3573b3b72b0c63c73d779848d182f/pdfplumber-0.10.4-py3-none-any.whl", hash = "sha256:c8f200259703324cd39a5c93b181a0d2370a6b2b6da670c117e75c3da6aca4a4", size = 54718, upload-time = "2024-02-10T23:37:58.882Z" },
 ]
-
-[[package]]
-name = "pdftitle"
-version = "0.11"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pdfminer-six" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/18/68/fde8449fdd656e23e4d598d7b0821313bd8d7c915babba9dfe375e648421/pdftitle-0.11.tar.gz", hash = "sha256:81ec9d427d9c759be6fb9bc6e074f642f6615747e35f2e260e14b2e8aa0127d0", size = 10396, upload-time = "2021-08-09T13:35:21.719Z" }
 
 [[package]]
 name = "pillow"
@@ -1012,6 +947,39 @@ wheels = [
 ]
 
 [[package]]
+name = "pip-licenses"
+version = "4.5.1"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.9'",
+]
+dependencies = [
+    { name = "prettytable", version = "3.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "tomli", marker = "python_full_version < '3.9'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/97/58/8499a3657e6030ebfd0c52449c057f2ee1c65ce5461dc3fe53e9746be62d/pip-licenses-4.5.1.tar.gz", hash = "sha256:fad5f56fbaa56b8e414434e36c32394a9412ff10ddf2cef92b51951bdf193869", size = 49735, upload-time = "2024-07-13T03:19:14.697Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/dd/66/5839827cd0760925db9244a69b2878dfb274d239ffd828c12313d580ddac/pip_licenses-4.5.1-py3-none-any.whl", hash = "sha256:7c982bc6837f47d32d4016b43d9174c0ce723b450710a2111a3ebbb910f152b7", size = 21050, upload-time = "2024-07-13T03:19:10.608Z" },
+]
+
+[[package]]
+name = "pip-licenses"
+version = "5.0.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.10'",
+    "python_full_version == '3.9.*'",
+]
+dependencies = [
+    { name = "prettytable", version = "3.16.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
+    { name = "tomli", marker = "python_full_version >= '3.9'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a0/49/d36a3ddb73d22970a35afa3e9fd53c8318150f8122e4257ca9875f1d4e38/pip_licenses-5.0.0.tar.gz", hash = "sha256:0633a1f9aab58e5a6216931b0e1d5cdded8bcc2709ff563674eb0e2ff9e77e8e", size = 41542, upload-time = "2024-07-23T10:48:29.785Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/27/0a/bfaf1479d09d19f503a669d9c8e433ac59ae687fb8da1d8207eb85c5a9f4/pip_licenses-5.0.0-py3-none-any.whl", hash = "sha256:82c83666753efb86d1af1c405c8ab273413eb10d6689c218df2f09acf40e477d", size = 20497, upload-time = "2024-07-23T10:48:27.59Z" },
+]
+
+[[package]]
 name = "pluggy"
 version = "1.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1037,6 +1005,37 @@ wheels = [
 ]
 
 [[package]]
+name = "prettytable"
+version = "3.11.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.9'",
+]
+dependencies = [
+    { name = "wcwidth", marker = "python_full_version < '3.9'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/28/57/0a642bec16d5736b9baaac7e830bedccd10341dc2858075c34d5aec5c8b6/prettytable-3.11.0.tar.gz", hash = "sha256:7e23ca1e68bbfd06ba8de98bf553bf3493264c96d5e8a615c0471025deeba722", size = 57527, upload-time = "2024-08-12T13:29:59.315Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d9/5a/bfdc26c0e19156992b1dc9de47f0b2e8992fe43db9981d814f860bdce2b3/prettytable-3.11.0-py3-none-any.whl", hash = "sha256:aa17083feb6c71da11a68b2c213b04675c4af4ce9c541762632ca3f2cb3546dd", size = 28734, upload-time = "2024-08-12T13:29:31.981Z" },
+]
+
+[[package]]
+name = "prettytable"
+version = "3.16.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.10'",
+    "python_full_version == '3.9.*'",
+]
+dependencies = [
+    { name = "wcwidth", marker = "python_full_version >= '3.9'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/99/b1/85e18ac92afd08c533603e3393977b6bc1443043115a47bb094f3b98f94f/prettytable-3.16.0.tar.gz", hash = "sha256:3c64b31719d961bf69c9a7e03d0c1e477320906a98da63952bc6698d6164ff57", size = 66276, upload-time = "2025-03-24T19:39:04.008Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/02/c7/5613524e606ea1688b3bdbf48aa64bafb6d0a4ac3750274c43b6158a390f/prettytable-3.16.0-py3-none-any.whl", hash = "sha256:b5eccfabb82222f5aa46b798ff02a8452cf530a352c31bddfa29be41242863aa", size = 33863, upload-time = "2025-03-24T19:39:02.359Z" },
+]
+
+[[package]]
 name = "pycparser"
 version = "2.22"
 source = { registry = "https://pypi.org/simple" }
@@ -1055,43 +1054,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pymupdf"
-version = "1.24.11"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version < '3.9'",
-]
-sdist = { url = "https://files.pythonhosted.org/packages/d4/a3/3edbb6be649e311107b320141cae0353d4cc9c6593eba7691f16c53c9c71/PyMuPDF-1.24.11.tar.gz", hash = "sha256:6e45e57f14ac902029d4aacf07684958d0e58c769f47d9045b2048d0a3d20155", size = 51199098, upload-time = "2024-10-03T20:59:54.415Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f5/75/b059d603530d99926de2b6a64314f3534e2149ee5496142de550c66907ac/PyMuPDF-1.24.11-cp38-abi3-macosx_10_9_x86_64.whl", hash = "sha256:24c35ba9e731027ff24566b90d4986e9aac75e1ce47589b25de51e3c687ddb73", size = 18895391, upload-time = "2024-10-03T20:58:18.04Z" },
-    { url = "https://files.pythonhosted.org/packages/16/f8/8396ca7218622cb3600c919b320a24f05b7c14bd81eea03f3f2182844a06/PyMuPDF-1.24.11-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:20c8eb65b855a33411246d6697a3f3166727fe2d8585753cf0db648730104be6", size = 18152689, upload-time = "2024-10-03T20:58:31.823Z" },
-    { url = "https://files.pythonhosted.org/packages/55/3d/84bd559129d2ff07267baae0bde0c6f4f49232408b547971f7a2e1534cb9/PyMuPDF-1.24.11-cp38-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:32fd013e3c844f105c0a6a43ee82acc7cd0c900f6ff14f5eed9492840bbcbdd9", size = 19033047, upload-time = "2024-10-04T07:59:52.645Z" },
-    { url = "https://files.pythonhosted.org/packages/ca/21/ad66778ad2485f87ef1d5a36f17ec8d4aee8ce247c8e46c673eff776a877/PyMuPDF-1.24.11-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:2efb793644df99db0fe2468149048175cf25c5803997828efc9152aca838f5f2", size = 19563533, upload-time = "2024-10-03T20:58:58.548Z" },
-    { url = "https://files.pythonhosted.org/packages/6a/92/9ff020892560f80433876ec904c0f2669d1d69403adf412565e54a946615/PyMuPDF-1.24.11-cp38-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:9b7ac5b8ec3daec17f2e830962ed091610e576a5e531d2fe28c437fbd69b1969", size = 20691324, upload-time = "2024-10-03T20:58:46.085Z" },
-    { url = "https://files.pythonhosted.org/packages/28/6b/a0247598f06585d84ae9927d6ed191d89d38686ad6bf0dadc0ed699a77e7/PyMuPDF-1.24.11-cp38-abi3-win32.whl", hash = "sha256:6fda6c7ed7e6ad74d9cfac5c3837ef42efd58c506440e2513a0a200bc3c4dbc0", size = 14685566, upload-time = "2024-10-03T20:59:21.644Z" },
-    { url = "https://files.pythonhosted.org/packages/f6/03/99895f003d7ff59c83d524aeccecff4e1ee1f39a7724f88acfda4f67b8bc/PyMuPDF-1.24.11-cp38-abi3-win_amd64.whl", hash = "sha256:745ce77532702d6ddeeecb47306d3669629aa5ff82708318cd652881f493b0ba", size = 15984328, upload-time = "2024-10-03T20:59:11.654Z" },
-]
-
-[[package]]
-name = "pymupdf"
-version = "1.26.3"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.10'",
-    "python_full_version == '3.9.*'",
-]
-sdist = { url = "https://files.pythonhosted.org/packages/6d/d4/70a265e4bcd43e97480ae62da69396ef4507c8f9cfd179005ee731c92a04/pymupdf-1.26.3.tar.gz", hash = "sha256:b7d2c3ffa9870e1e4416d18862f5ccd356af5fe337b4511093bbbce2ca73b7e5", size = 75990308, upload-time = "2025-07-02T21:34:22.243Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/d3/c7af70545cd3097a869fd635bb6222108d3a0fb28c0b8254754a126c4cbb/pymupdf-1.26.3-cp39-abi3-macosx_10_9_x86_64.whl", hash = "sha256:ded891963944e5f13b03b88f6d9e982e816a4ec8689fe360876eef000c161f2b", size = 23057205, upload-time = "2025-07-02T21:26:16.326Z" },
-    { url = "https://files.pythonhosted.org/packages/04/3d/ec5b69bfeaa5deefa7141fc0b20d77bb20404507cf17196b4eb59f1f2977/pymupdf-1.26.3-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:436a33c738bb10eadf00395d18a6992b801ffb26521ee1f361ae786dd283327a", size = 22406630, upload-time = "2025-07-02T21:27:10.112Z" },
-    { url = "https://files.pythonhosted.org/packages/fc/20/661d3894bb05ad75ed6ca103ee2c3fa44d88a458b5c8d4a946b9c0f2569b/pymupdf-1.26.3-cp39-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:a2d7a3cd442f12f05103cb3bb1415111517f0a97162547a3720f3bbbc5e0b51c", size = 23450287, upload-time = "2025-07-03T07:22:19.317Z" },
-    { url = "https://files.pythonhosted.org/packages/9c/7f/21828f018e65b16a033731d21f7b46d93fa81c6e8257f769ca4a1c2a1cb0/pymupdf-1.26.3-cp39-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:454f38c8cf07eb333eb4646dca10517b6e90f57ce2daa2265a78064109d85555", size = 24057319, upload-time = "2025-07-02T21:28:26.697Z" },
-    { url = "https://files.pythonhosted.org/packages/71/5d/e8f88cd5a45b8f5fa6590ce8cef3ce0fad30eac6aac8aea12406f95bee7d/pymupdf-1.26.3-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:759b75d2f710ff4edf8d097d2e98f60e9ecef47632cead6f949b3412facdb9f0", size = 24261350, upload-time = "2025-07-02T21:29:21.733Z" },
-    { url = "https://files.pythonhosted.org/packages/82/22/ecc560e4f281b5dffafbf3a81f023d268b1746d028044f495115b74a2e70/pymupdf-1.26.3-cp39-abi3-win32.whl", hash = "sha256:a839ed44742faa1cd4956bb18068fe5aae435d67ce915e901318646c4e7bbea6", size = 17116371, upload-time = "2025-07-02T21:30:23.253Z" },
-    { url = "https://files.pythonhosted.org/packages/4a/26/8c72973b8833a72785cedc3981eb59b8ac7075942718bbb7b69b352cdde4/pymupdf-1.26.3-cp39-abi3-win_amd64.whl", hash = "sha256:b4cd5124d05737944636cf45fc37ce5824f10e707b0342efe109c7b6bd37a9cc", size = 18735124, upload-time = "2025-07-02T21:31:10.992Z" },
-]
-
-[[package]]
 name = "pypdf"
 version = "5.8.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1102,19 +1064,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/28/5a/139b1a3ec3789cc77a7cb9d5d3bc9e97e742e6d03708baeb7719f8ad0827/pypdf-5.8.0.tar.gz", hash = "sha256:f8332f80606913e6f0ce65488a870833c9d99ccdb988c17bb6c166f7c8e140cb", size = 5029494, upload-time = "2025-07-13T12:51:35.125Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8b/94/05d0310bfa92c26aa50a9d2dea2c6448a1febfdfcf98fb340a99d48a3078/pypdf-5.8.0-py3-none-any.whl", hash = "sha256:bfe861285cd2f79cceecefde2d46901e4ee992a9f4b42c56548c4a6e9236a0d1", size = 309718, upload-time = "2025-07-13T12:51:33.159Z" },
-]
-
-[[package]]
-name = "pypdf2"
-version = "2.0.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "typing-extensions", version = "4.13.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "typing-extensions", version = "4.14.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/40/27/7ac08d83b15c391c3f1e9644bfacaf4e45aef670902af2235eb92b0bf2df/PyPDF2-2.0.0.tar.gz", hash = "sha256:6c2c686cbdad1fa6d42a8cafb5d2f033d1798dd00e13e8d7691b510c567efa34", size = 95128, upload-time = "2022-06-01T05:54:50.843Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/76/23/3cb3218c421a1b9b7b378cafd032869dddbc0e6a7f3a940c296d0c40b304/PyPDF2-2.0.0-py3-none-any.whl", hash = "sha256:eb9eb675d91c0d167abd63fa5f5037486d5b9ef9715c5c8b55b99c3627619402", size = 88473, upload-time = "2022-06-01T05:54:48.714Z" },
 ]
 
 [[package]]
@@ -1136,12 +1085,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/25/bd/56d9ec6b9f0fc4e0d95288759f3179f0fcd34b1a1526b75673d2f6d5196f/pypdfium2-4.30.0-py3-none-win_amd64.whl", hash = "sha256:90dbb2ac07be53219f56be09961eb95cf2473f834d01a42d901d13ccfad64b4c", size = 2892098, upload-time = "2024-05-09T18:33:13.107Z" },
     { url = "https://files.pythonhosted.org/packages/be/7a/097801205b991bc3115e8af1edb850d30aeaf0118520b016354cf5ccd3f6/pypdfium2-4.30.0-py3-none-win_arm64.whl", hash = "sha256:119b2969a6d6b1e8d55e99caaf05290294f2d0fe49c12a3f17102d01c441bd29", size = 2752118, upload-time = "2024-05-09T18:33:15.489Z" },
 ]
-
-[[package]]
-name = "pyperclip"
-version = "1.9.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/30/23/2f0a3efc4d6a32f3b63cdff36cd398d9701d26cda58e3ab97ac79fb5e60d/pyperclip-1.9.0.tar.gz", hash = "sha256:b7de0142ddc81bfc5c7507eea19da920b92252b548b96186caf94a5e2527d310", size = 20961, upload-time = "2024-06-18T20:38:48.401Z" }
 
 [[package]]
 name = "pytest"
@@ -1265,15 +1208,6 @@ name = "sgmllib3k"
 version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/9e/bd/3704a8c3e0942d711c1299ebf7b9091930adae6675d7c8f476a7ce48653c/sgmllib3k-1.0.0.tar.gz", hash = "sha256:7868fb1c8bfa764c1ac563d3cf369c381d1325d36124933a726f29fcdaa812e9", size = 5750, upload-time = "2010-08-24T14:33:52.445Z" }
-
-[[package]]
-name = "soupsieve"
-version = "2.7"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3f/f4/4a80cd6ef364b2e8b65b15816a843c0980f7a5a2b4dc701fc574952aa19f/soupsieve-2.7.tar.gz", hash = "sha256:ad282f9b6926286d2ead4750552c8a6142bc4c783fd66b0293547c8fe6ae126a", size = 103418, upload-time = "2025-04-20T18:50:08.518Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e7/9c/0e6afc12c269578be5c0c1c9f4b49a8d32770a080260c333ac04cc1c832d/soupsieve-2.7-py3-none-any.whl", hash = "sha256:6e60cc5c1ffaf1cebcc12e8188320b72071e922c2e897f737cadce79ad5d30c4", size = 36677, upload-time = "2025-04-20T18:50:07.196Z" },
-]
 
 [[package]]
 name = "tomli"
@@ -1405,4 +1339,13 @@ resolution-markers = [
 sdist = { url = "https://files.pythonhosted.org/packages/15/22/9ee70a2574a4f4599c47dd506532914ce044817c7752a79b6a51286319bc/urllib3-2.5.0.tar.gz", hash = "sha256:3fc47733c7e419d4bc3f6b3dc2b4f890bb743906a30d56ba4a5bfa4bbff92760", size = 393185, upload-time = "2025-06-18T14:07:41.644Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a7/c2/fe1e52489ae3122415c51f387e221dd0773709bad6c6cdaa599e8a2c5185/urllib3-2.5.0-py3-none-any.whl", hash = "sha256:e6b01673c0fa6a13e374b50871808eb3bf7046c4b125b216f6bf1cc604cff0dc", size = 129795, upload-time = "2025-06-18T14:07:40.39Z" },
+]
+
+[[package]]
+name = "wcwidth"
+version = "0.2.13"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6c/63/53559446a878410fc5a5974feb13d31d78d752eb18aeba59c7fef1af7598/wcwidth-0.2.13.tar.gz", hash = "sha256:72ea0c06399eb286d978fdedb6923a9eb47e1c486ce63e9b4e64fc18303972b5", size = 101301, upload-time = "2024-01-06T02:10:57.829Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fd/84/fd2ba7aafacbad3c4201d395674fc6348826569da3c0937e75505ead3528/wcwidth-0.2.13-py2.py3-none-any.whl", hash = "sha256:3da69048e4540d84af32131829ff948f1e022c1c6bdb8d6102117aac784f6859", size = 34166, upload-time = "2024-01-06T02:10:55.763Z" },
 ]

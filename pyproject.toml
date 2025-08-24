@@ -106,6 +106,7 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "pip-licenses>=4.5.1",
     "pytest>=8.3.5",
     "pytest-cov>=5.0.0",
     "types-requests>=2.32.0.20241016",
