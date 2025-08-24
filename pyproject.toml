@@ -58,11 +58,17 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+"src/paperorganize/metadata_extraction/*" = [
+    "PLC0415",  # Local imports for optional dependencies with graceful fallbacks
+    "PERF203",  # Exception handling in loops for robust text extraction
+]
 "tests/*" = [
     "ARG001",   # Unused arguments in test mocks are common and acceptable
     "ARG002",   # Unused method arguments in test fixtures
     "FBT003",   # Boolean positional args in test data/mocks are clear in context
     "PLR2004",  # Magic numbers in tests (2, 3, etc.) are clear and don't need constants
+    "PLC0415",  # Local imports in test functions are acceptable for isolation
+    "SIM117",   # Nested context managers in tests for clarity over brevity
 ]
 "tests/test_cli.py" = [
     "FBT001",   # Boolean-typed positional argument (specific to this file)

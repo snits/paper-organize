@@ -324,13 +324,12 @@ class TestApiClients:
         client = ArxivClient()
 
         # Mock import to fail
-        with patch.dict("sys.modules", {"arxiv": None}):
-            with patch(
-                "builtins.__import__",
-                side_effect=ImportError("No module named 'arxiv'"),
-            ):
-                result = client.get_metadata("2401.12345")
-                assert result is None
+        with patch.dict("sys.modules", {"arxiv": None}), patch(
+            "builtins.__import__",
+            side_effect=ImportError("No module named 'arxiv'"),
+        ):
+            result = client.get_metadata("2401.12345")
+            assert result is None
 
     @patch("requests.get")
     def test_crossref_client_get_metadata_success(self, mock_get: MagicMock) -> None:
@@ -434,20 +433,19 @@ class TestEnhancedMetadataExtractor:
             extractor.text_extractors[0],
             "extract_text",
             side_effect=Exception("Extraction failed"),
+        ), patch.object(
+            extractor.text_extractors[1],
+            "extract_text",
+            side_effect=Exception("Extraction failed"),
         ):
-            with patch.object(
-                extractor.text_extractors[1],
-                "extract_text",
-                side_effect=Exception("Extraction failed"),
-            ):
-                metadata = PaperMetadata()
+            metadata = PaperMetadata()
 
-                with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
-                    extractor.extract_identifiers_and_enrich(tmp_file.name, metadata)
+            with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
+                extractor.extract_identifiers_and_enrich(tmp_file.name, metadata)
 
-                # Should not call pattern matchers if no text extracted
-                mock_find_doi.assert_not_called()
-                mock_find_arxiv.assert_not_called()
+            # Should not call pattern matchers if no text extracted
+            mock_find_doi.assert_not_called()
+            mock_find_arxiv.assert_not_called()
 
     def test_extract_text_with_fallback_success(self) -> None:
         """Test text extraction fallback chain success."""
@@ -458,16 +456,15 @@ class TestEnhancedMetadataExtractor:
             extractor.text_extractors[0],
             "extract_text",
             side_effect=Exception("First failed"),
+        ), patch.object(
+            extractor.text_extractors[1],
+            "extract_text",
+            return_value="Extracted text",
         ):
-            with patch.object(
-                extractor.text_extractors[1],
-                "extract_text",
-                return_value="Extracted text",
-            ):
-                with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
-                    result = extractor._extract_text_with_fallback(tmp_file.name)
+            with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
+                result = extractor._extract_text_with_fallback(tmp_file.name)
 
-                assert result == "Extracted text"
+            assert result == "Extracted text"
 
     def test_extract_text_with_fallback_all_fail(self) -> None:
         """Test text extraction when all extractors fail."""
@@ -478,16 +475,15 @@ class TestEnhancedMetadataExtractor:
             extractor.text_extractors[0],
             "extract_text",
             side_effect=Exception("Failed"),
+        ), patch.object(
+            extractor.text_extractors[1],
+            "extract_text",
+            side_effect=Exception("Failed"),
         ):
-            with patch.object(
-                extractor.text_extractors[1],
-                "extract_text",
-                side_effect=Exception("Failed"),
-            ):
-                with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
-                    result = extractor._extract_text_with_fallback(tmp_file.name)
+            with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
+                result = extractor._extract_text_with_fallback(tmp_file.name)
 
-                assert result == ""
+            assert result == ""
 
     def test_process_doi_matches_sets_doi(self) -> None:
         """Test DOI processing sets metadata.doi."""

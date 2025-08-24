@@ -51,7 +51,8 @@ class PdfPlumberExtractor:
         try:
             import pdfplumber
         except ImportError as e:
-            raise ImportError("pdfplumber not available") from e
+            msg = "pdfplumber not available"
+            raise ImportError(msg) from e
 
         text_parts = []
 
@@ -69,7 +70,10 @@ class PdfPlumberExtractor:
 
                     # Early exit optimization - stop when we have enough text
                     # for pattern matching (typically first page has identifiers)
-                    if len("".join(text_parts)) > 5000:  # Reasonable text limit
+                    text_extraction_limit = (
+                        5000  # Reasonable text limit for pattern matching
+                    )
+                    if len("".join(text_parts)) > text_extraction_limit:
                         break
 
         except Exception as e:
@@ -97,7 +101,8 @@ class PyPDFExtractor:
         try:
             from pypdf import PdfReader
         except ImportError as e:
-            raise ImportError("pypdf library not available") from e
+            msg = "pypdf library not available"
+            raise ImportError(msg) from e
 
         text_parts = []
 
@@ -114,7 +119,10 @@ class PyPDFExtractor:
                     text_parts.append(page_text.strip())
 
                 # Early exit optimization
-                if len("".join(text_parts)) > 5000:
+                text_extraction_limit = (
+                    5000  # Reasonable text limit for pattern matching
+                )
+                if len("".join(text_parts)) > text_extraction_limit:
                     break
 
         except Exception as e:

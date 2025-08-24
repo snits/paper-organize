@@ -68,16 +68,14 @@ def find_doi_patterns(text: str) -> List[IdentifierMatch]:
     for pattern, confidence in DOI_PATTERNS:
         for match in re.finditer(pattern, text, re.IGNORECASE):
             # Extract DOI - pattern may have capturing group
-            if match.groups():
-                doi = match.group(1).strip()
-            else:
-                doi = match.group(0).strip()
+            doi = match.group(1).strip() if match.groups() else match.group(0).strip()
 
             # Clean up DOI - remove common trailing punctuation
             doi = re.sub(r"[.,;:\]]+$", "", doi)
 
             # Basic validation - DOI should have reasonable format
-            if len(doi) > 7 and "/" in doi and doi.startswith("10."):
+            min_doi_length = 7  # Minimum reasonable DOI length
+            if len(doi) > min_doi_length and "/" in doi and doi.startswith("10."):
                 matches.append(
                     IdentifierMatch(
                         identifier=doi, identifier_type="doi", confidence=confidence
@@ -164,7 +162,4 @@ def _is_valid_arxiv_format(arxiv_id: str) -> bool:
         return True
 
     # Old format: subject-class/YYMMnnn
-    if re.match(r"^[a-z-]+(?:\.[A-Z]{2})?/\d{7}$", arxiv_id):
-        return True
-
-    return False
+    return bool(re.match(r"^[a-z-]+(?:\.[A-Z]{2})?/\d{7}$", arxiv_id))
