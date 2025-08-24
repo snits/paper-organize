@@ -18,13 +18,8 @@ try:
 
     PDF_READER_AVAILABLE = True
 except ImportError:
-    try:
-        from PyPDF2 import PdfReader  # type: ignore[assignment]
-
-        PDF_READER_AVAILABLE = True
-    except ImportError:
-        PDF_READER_AVAILABLE = False
-        PdfReader = Any  # type: ignore[assignment,misc]
+    PDF_READER_AVAILABLE = False
+    PdfReader = Any  # type: ignore[assignment,misc]
 
 
 try:

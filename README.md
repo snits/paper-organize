@@ -97,7 +97,7 @@ paper-organize https://arxiv.org/pdf/2506.21734 --dir ./references/
 1. **Processes input** - downloads from URLs or reads existing files with progress tracking
 2. **Extracts metadata** using a layered strategy:
    - PyPDF for basic PDF metadata
-   - pdf2doi for academic identifiers (DOI, arXiv ID)
+   - Enhanced extraction pipeline with arXiv API and pdfplumber for academic identifiers (DOI, arXiv ID)
    - Title parsing from PDF text as fallback
 3. **Generates filename** in format: `{FirstAuthor}_{Year}_{Title}.pdf`
 4. **Sanitizes** filename for filesystem compatibility
@@ -168,7 +168,8 @@ This project builds on several excellent open-source libraries:
 - **[Click](https://github.com/pallets/click)** (BSD-3-Clause) - Command line interface toolkit
 - **[Requests](https://github.com/psf/requests)** (Apache-2.0) - HTTP library for downloads
 - **[PyPDF](https://github.com/py-pdf/pypdf)** (BSD-3-Clause) - PDF text extraction and metadata
-- **[pdf2doi](https://github.com/pdf2doi/pdf2doi)** (MIT) - Academic paper DOI extraction
+- **[pdfplumber](https://github.com/jsvine/pdfplumber)** (MIT) - Enhanced PDF text extraction
+- **[arxiv](https://github.com/lukasschwab/arxiv.py)** (MIT) - Official arXiv API client
 - **[tqdm](https://github.com/tqdm/tqdm)** (MIT/MPL-2.0) - Progress bars
 - **[pytest](https://github.com/pytest-dev/pytest)** (MIT) - Testing framework
 - **[MyPy](https://github.com/python/mypy)** (MIT) - Static type checker

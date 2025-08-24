@@ -96,11 +96,8 @@ class PyPDFExtractor:
         """
         try:
             from pypdf import PdfReader
-        except ImportError:
-            try:
-                from PyPDF2 import PdfReader  # type: ignore[assignment]
-            except ImportError as e:
-                raise ImportError("No PDF reader available") from e
+        except ImportError as e:
+            raise ImportError("pypdf library not available") from e
 
         text_parts = []
 
