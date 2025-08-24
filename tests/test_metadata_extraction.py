@@ -608,11 +608,12 @@ class TestEnhancedMetadataExtractor:
 
 
 def test_integration_extract_pdf_metadata_with_enhanced_pipeline() -> None:
-    """Integration test: extract_pdf_metadata uses enhanced pipeline instead of pdf2doi."""
+    """Integration test: extract_pdf_metadata uses enhanced pipeline for metadata extraction."""
     import tempfile
     from pathlib import Path
-    from unittest.mock import patch, MagicMock
-    from paperorganize.metadata import extract_pdf_metadata, PaperMetadata
+    from unittest.mock import MagicMock, patch
+
+    from paperorganize.metadata import PaperMetadata, extract_pdf_metadata
     from paperorganize.metadata_extraction.metadata_enricher import (
         EnhancedMetadataExtractor,
     )
@@ -666,8 +667,9 @@ def test_integration_enhanced_pipeline_preserves_pypdf_data() -> None:
     """Test enhanced pipeline preserves existing pypdf metadata."""
     import tempfile
     from pathlib import Path
-    from unittest.mock import patch, MagicMock
-    from paperorganize.metadata import extract_pdf_metadata, PaperMetadata
+    from unittest.mock import MagicMock, patch
+
+    from paperorganize.metadata import PaperMetadata, extract_pdf_metadata
     from paperorganize.metadata_extraction.metadata_enricher import (
         EnhancedMetadataExtractor,
     )
