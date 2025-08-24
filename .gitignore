@@ -102,3 +102,5 @@ temp/
 
 # Personal development configuration
 .claude-local.md
+.claude/
+
