@@ -15,6 +15,7 @@ import logging
 from typing import List
 
 from paperorganize.metadata import PaperMetadata
+
 from .api_clients import ArxivClient, CrossRefClient
 from .pattern_matchers import IdentifierMatch, find_arxiv_patterns, find_doi_patterns
 from .text_extractors import PdfPlumberExtractor, PDFTextExtractor, PyPDFExtractor
@@ -152,8 +153,18 @@ class EnhancedMetadataExtractor:
             crossref_data: CrossRef API response data
             metadata: PaperMetadata to update
         """
-        # Implementation will be added in Commit 3: API Integration
-        logger.debug("CrossRef metadata merge not yet implemented")
+        # Only update fields that are currently empty to avoid overwriting pypdf data
+        if not metadata.title and crossref_data.get("title"):
+            metadata.title = crossref_data["title"]
+            logger.debug("Updated title from CrossRef: %s", metadata.title)
+
+        if not metadata.authors and crossref_data.get("authors"):
+            metadata.authors = crossref_data["authors"]
+            logger.debug("Updated authors from CrossRef: %s", metadata.authors)
+
+        if not metadata.year and crossref_data.get("year"):
+            metadata.year = crossref_data["year"]
+            logger.debug("Updated year from CrossRef: %s", metadata.year)
 
     def _merge_arxiv_metadata(self, arxiv_data: dict, metadata: PaperMetadata) -> None:
         """Merge arXiv metadata into PaperMetadata.
@@ -162,5 +173,15 @@ class EnhancedMetadataExtractor:
             arxiv_data: arXiv API response data
             metadata: PaperMetadata to update
         """
-        # Implementation will be added in Commit 3: API Integration
-        logger.debug("arXiv metadata merge not yet implemented")
+        # Only update fields that are currently empty to avoid overwriting pypdf data
+        if not metadata.title and arxiv_data.get("title"):
+            metadata.title = arxiv_data["title"]
+            logger.debug("Updated title from arXiv: %s", metadata.title)
+
+        if not metadata.authors and arxiv_data.get("authors"):
+            metadata.authors = arxiv_data["authors"]
+            logger.debug("Updated authors from arXiv: %s", metadata.authors)
+
+        if not metadata.year and arxiv_data.get("year"):
+            metadata.year = arxiv_data["year"]
+            logger.debug("Updated year from arXiv: %s", metadata.year)

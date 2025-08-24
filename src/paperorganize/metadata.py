@@ -32,6 +32,14 @@ try:
 except ImportError:
     pdf2doi = None
 
+try:
+    from .metadata_extraction.metadata_enricher import EnhancedMetadataExtractor
+
+    ENHANCED_EXTRACTION_AVAILABLE = True
+except ImportError:
+    ENHANCED_EXTRACTION_AVAILABLE = False
+    EnhancedMetadataExtractor = Any  # type: ignore[assignment,misc]
+
 logger = logging.getLogger(__name__)
 
 
@@ -62,8 +70,9 @@ def extract_pdf_metadata(pdf_path: str) -> PaperMetadata:
 
     Uses multiple extraction methods in order of reliability:
     1. pypdf for standard PDF metadata
-    2. pdf2doi for academic identifiers (DOI, arXiv)
-    3. Graceful fallback for missing/corrupted files
+    2. Enhanced extraction pipeline for academic identifiers (DOI, arXiv)
+    3. Fallback to pdf2doi if enhanced extraction unavailable
+    4. Graceful fallback for missing/corrupted files
 
     Args:
         pdf_path: Path to PDF file
@@ -76,8 +85,12 @@ def extract_pdf_metadata(pdf_path: str) -> PaperMetadata:
     # Layer 1: Try pypdf for basic metadata
     _extract_with_pypdf(pdf_path, metadata)
 
-    # Layer 2: Try pdf2doi for academic identifiers
-    _extract_with_pdf2doi(pdf_path, metadata)
+    # Layer 2: Try enhanced extraction pipeline for academic identifiers
+    if ENHANCED_EXTRACTION_AVAILABLE:
+        _extract_with_enhanced_pipeline(pdf_path, metadata)
+    else:
+        # Fallback to pdf2doi for academic identifiers
+        _extract_with_pdf2doi(pdf_path, metadata)
 
     # Layer 3: Extract year from title if not found yet
     if not metadata.year and metadata.title:
@@ -158,6 +171,22 @@ def _extract_with_pypdf(pdf_path: str, metadata: PaperMetadata) -> None:
     except Exception as e:
         # Log error but continue gracefully if pypdf fails
         logger.debug("Failed to extract metadata with pypdf from %s: %s", pdf_path, e)
+
+
+def _extract_with_enhanced_pipeline(pdf_path: str, metadata: PaperMetadata) -> None:
+    """Extract academic identifiers using enhanced extraction pipeline."""
+    if not ENHANCED_EXTRACTION_AVAILABLE:
+        return
+
+    try:
+        extractor = EnhancedMetadataExtractor()
+        extractor.extract_identifiers_and_enrich(pdf_path, metadata)
+        logger.debug("Enhanced extraction completed for %s", pdf_path)
+    except Exception as e:
+        # Log error but continue gracefully if enhanced extraction fails
+        logger.debug(
+            "Failed to extract with enhanced pipeline from %s: %s", pdf_path, e
+        )
 
 
 def _extract_with_pdf2doi(pdf_path: str, metadata: PaperMetadata) -> None:
