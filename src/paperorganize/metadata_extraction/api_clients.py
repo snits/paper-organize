@@ -262,7 +262,9 @@ class CrossRefClient:
             if date_parts and len(date_parts[0]) > 0:
                 try:
                     year = int(date_parts[0][0])
-                    if MIN_ACADEMIC_YEAR <= year <= MAX_ACADEMIC_YEAR:  # Reasonable year range
+                    if (
+                        MIN_ACADEMIC_YEAR <= year <= MAX_ACADEMIC_YEAR
+                    ):  # Reasonable year range
                         return year
                 except (ValueError, TypeError, IndexError):
                     continue
