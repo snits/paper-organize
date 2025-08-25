@@ -108,4 +108,4 @@ jobs:
       run: |
         cd /tmp
         uv run paper-organize https://httpbin.org/bytes/1024 --no-auto-name
-        test -f 1024
+        test -f paper.pdf
