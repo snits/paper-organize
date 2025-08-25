@@ -33,7 +33,7 @@ jobs:
     
     - name: Run tests
       run: |
-        uv run pytest --cov=paperdl --cov-report=xml --cov-report=term-missing
+        uv run pytest --cov=paperorganize --cov-report=xml --cov-report=term-missing
     
     - name: Type checking with MyPy
       run: |
@@ -100,11 +100,11 @@ jobs:
     
     - name: Test CLI installation
       run: |
-        uv run paper-dl --help
+        uv run paper-organize --help
     
     - name: Test real download (if not in PR)
       if: github.event_name == 'push'
       run: |
         cd /tmp
-        uv run paper-dl https://httpbin.org/bytes/1024 --no-auto-name
+        uv run paper-organize https://httpbin.org/bytes/1024 --no-auto-name
         test -f 1024
