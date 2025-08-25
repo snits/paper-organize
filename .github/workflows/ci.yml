@@ -105,6 +105,6 @@ jobs:
     - name: Test real download (if not in PR)
       if: github.event_name == 'push'
       run: |
-        cd /tmp
-        uv run paper-organize https://httpbin.org/bytes/1024 --no-auto-name
-        test -f paper.pdf
+        # Run from project directory so uv can find the project environment
+        uv run paper-organize https://httpbin.org/bytes/1024 --no-auto-name --dir /tmp
+        test -f /tmp/paper.pdf
