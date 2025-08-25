@@ -40,7 +40,7 @@ Related to #(issue_number)
 ```bash
 # Commands you ran to test this change
 uv run pytest tests/test_new_feature.py -v
-uv run paper-dl <test-url>
+uv run paper-organize <test-url>
 ```
 
 ## Quality Checklist
@@ -58,7 +58,7 @@ uv run paper-dl <test-url>
 <!-- If applicable, add screenshots or example output -->
 ```bash
 # Example of new functionality
-$ paper-dl https://arxiv.org/pdf/2301.00001.pdf --new-option
+$ paper-organize https://arxiv.org/pdf/2301.00001.pdf --new-option
 ✓ Downloaded to: Smith_2023_Novel_Machine_Learning.pdf
 ```
 
