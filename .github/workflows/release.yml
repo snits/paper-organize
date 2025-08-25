@@ -102,7 +102,7 @@ jobs:
           ## Installation
           
           ```bash
-          pip install paper-dl==${{ github.ref_name }}
+          pip install paper-organize==${{ github.ref_name }}
           ```
           
           ## Full Changelog
