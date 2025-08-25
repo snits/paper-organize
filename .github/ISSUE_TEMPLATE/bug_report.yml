@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 name: Bug Report
-description: File a bug report to help us improve paper-dl
+description: File a bug report to help us improve paper-organize
 title: "[Bug]: "
 labels: ["bug", "triage"]
 
@@ -13,8 +13,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: paper-dl Version
-      description: What version of paper-dl are you using?
+      label: paper-organize Version
+      description: What version of paper-organize are you using?
       placeholder: "1.0.0"
     validations:
       required: true
@@ -42,7 +42,7 @@ body:
     attributes:
       label: Bug Description
       description: A clear and concise description of what the bug is.
-      placeholder: "paper-dl fails when downloading from arXiv with error..."
+      placeholder: "paper-organize fails when downloading from arXiv with error..."
     validations:
       required: true
 
@@ -52,7 +52,7 @@ body:
       label: Steps to Reproduce
       description: Steps to reproduce the behavior
       placeholder: |
-        1. Run `paper-dl https://arxiv.org/pdf/...`
+        1. Run `paper-organize https://arxiv.org/pdf/...`
         2. See error message
         3. ...
     validations:
@@ -83,7 +83,7 @@ body:
       description: Copy and paste any relevant log output or error messages
       render: shell
       placeholder: |
-        $ paper-dl https://arxiv.org/pdf/2301.00001.pdf
+        $ paper-organize https://arxiv.org/pdf/2301.00001.pdf
         Error: NetworkError: Request timed out after 30 seconds
 
   - type: textarea

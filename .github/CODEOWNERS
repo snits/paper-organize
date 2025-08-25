@@ -3,7 +3,7 @@
 * @jsnitsel
 
 # Python package files
-src/paperdl/ @jsnitsel
+src/paperorganize/ @jsnitsel
 tests/ @jsnitsel
 
 # Configuration files
