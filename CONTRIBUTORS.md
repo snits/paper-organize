@@ -2,7 +2,7 @@
 
 ## Project Creator & Maintainer
 
-**Jerry Snitselaar** ([@jsnitsel](mailto:jsnitsel@redhat.com))
+**Jerry Snitselaar** ([@jsnitsel](mailto:dev@snitselaar.org))
 - Original concept and vision
 - Project architecture and design decisions
 - Core functionality implementation
