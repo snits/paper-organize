@@ -93,6 +93,7 @@ dmypy.json
 # Project-specific test files
 test_output/
 *.pdf
+!tests/fixtures/*.pdf
 test_download.pdf
 paper.pdf
 
