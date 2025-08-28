@@ -73,7 +73,7 @@ jobs:
     - name: Run safety check
       run: |
         uv add --dev safety
-        uv run safety check
+        uv run safety scan
     
     - name: Run bandit security check
       run: |
