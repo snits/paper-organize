@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 import contextlib
+import re
 import time
 from pathlib import Path
 from typing import Callable, Optional, TypeVar
@@ -194,6 +195,63 @@ def _fetch_response(url: str) -> requests.Response:
     return response
 
 
+def _is_pdf_content_type(response: requests.Response) -> bool:
+    """Check if response Content-Type indicates a PDF.
+
+    Args:
+        response: HTTP response object
+
+    Returns:
+        True if Content-Type indicates PDF, False otherwise
+    """
+    content_type = response.headers.get("content-type", "").lower()
+    return content_type.startswith("application/pdf")
+
+
+def _extract_filename_from_content_disposition(
+    response: requests.Response,
+) -> Optional[str]:
+    """Extract filename from Content-Disposition header.
+
+    Args:
+        response: HTTP response object
+
+    Returns:
+        Extracted filename if found, None otherwise
+
+    Examples:
+        >>> # For header: 'attachment; filename="document.pdf"'
+        >>> _extract_filename_from_content_disposition(response)
+        'document.pdf'
+        >>> # For header: 'inline; filename="1901.06032v7.pdf"'
+        >>> _extract_filename_from_content_disposition(response)
+        '1901.06032v7.pdf'
+    """
+    content_disposition = response.headers.get("content-disposition", "")
+    if not content_disposition:
+        return None
+
+    # Look for filename= or filename*= patterns
+    # Handle both quoted and unquoted filenames
+    patterns = [
+        r'filename\*?=\s*"([^"]+)"',  # filename="file.pdf" or filename*="file.pdf"
+        r"filename\*?=\s*'([^']+)'",  # filename='file.pdf'
+        r"filename\*?=\s*([^;,\s]+)",  # filename=file.pdf (unquoted)
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, content_disposition, re.IGNORECASE)
+        if match:
+            filename = match.group(1).strip()
+            # Handle RFC 5987 encoded filenames (UTF-8'en'filename)
+            if "*=" in content_disposition.lower() and "'" in filename:
+                # Simple handling of UTF-8'lang'filename format
+                filename = filename.split("'")[-1]
+            return filename
+
+    return None
+
+
 def _get_content_length(response: requests.Response) -> int:
     """Extract content length from response headers.
 
@@ -316,6 +374,64 @@ def _fetch_response_with_retry(url: str) -> requests.Response:
         raise HTTPError(msg, status_code=response.status_code, url=url) from e
 
     return response
+
+
+def get_download_info(url: str) -> tuple[Optional[str], bool]:
+    """Get download information from URL headers without downloading content.
+
+    Args:
+        url: URL to check
+
+    Returns:
+        Tuple of (suggested_filename, is_pdf_content)
+        - suggested_filename: Filename from Content-Disposition or None
+        - is_pdf_content: True if Content-Type indicates PDF
+
+    Raises:
+        ValidationError: If input parameters are invalid
+        NetworkError: If network request fails
+        HTTPError: If HTTP response indicates an error
+    """
+    # Input validation
+    if not url or not isinstance(url, str):
+        msg = "URL must be a non-empty string"
+        raise ValidationError(msg, field="url", value=url)
+
+    # Basic URL validation
+    parsed = urlparse(url)
+    if not parsed.scheme or not parsed.netloc:
+        msg = "URL must have a valid scheme and hostname"
+        raise ValidationError(msg, field="url", value=url)
+
+    if parsed.scheme not in ("http", "https"):
+        msg = "URL must use HTTP or HTTPS protocol"
+        raise ValidationError(msg, field="url", value=url)
+
+    # Make HEAD request to get headers
+    try:
+        response = requests.head(url, timeout=30, allow_redirects=True)
+    except requests.exceptions.Timeout as e:
+        msg = "Request timed out after 30 seconds"
+        raise NetworkError(msg, details={"url": url}) from e
+    except requests.exceptions.ConnectionError as e:
+        msg = f"Connection failed: {e}"
+        raise NetworkError(msg, details={"url": url}) from e
+    except requests.exceptions.RequestException as e:
+        msg = f"Request failed: {e}"
+        raise NetworkError(msg, details={"url": url}) from e
+
+    # Handle HTTP status errors
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        msg = f"HTTP request failed: {e}"
+        raise HTTPError(msg, status_code=response.status_code, url=url) from e
+
+    # Extract information from headers
+    suggested_filename = _extract_filename_from_content_disposition(response)
+    is_pdf_content = _is_pdf_content_type(response)
+
+    return suggested_filename, is_pdf_content
 
 
 def download_file(
