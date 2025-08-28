@@ -121,6 +121,7 @@ class TestURLProcessor:
         with patch("paperorganize.processors.get_download_info") as mock_get_info:
             # Mock header check failure with proper domain exception
             from paperorganize.exceptions import NetworkError
+
             mock_get_info.side_effect = NetworkError("Network error")
             filename = processor._determine_filename(
                 None, "https://arxiv.org/pdf/1901.06032"
