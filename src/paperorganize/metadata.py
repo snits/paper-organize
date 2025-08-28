@@ -6,8 +6,9 @@ import datetime
 import logging
 import re
 import unicodedata
-from dataclasses import dataclass
-from typing import Any, List, Optional
+from typing import Any
+
+from .models import PaperMetadata
 
 # Constants for academic year validation
 MIN_ACADEMIC_YEAR = 1900
@@ -39,20 +40,6 @@ def _is_valid_academic_year(year: int) -> bool:
     return MIN_ACADEMIC_YEAR <= year <= current_year + MAX_YEAR_OFFSET
 
 
-@dataclass
-class PaperMetadata:
-    """Structured metadata for academic papers."""
-
-    title: Optional[str] = None
-    authors: Optional[List[str]] = None
-    doi: Optional[str] = None
-    arxiv_id: Optional[str] = None
-    year: Optional[int] = None
-
-    def __post_init__(self) -> None:
-        """Initialize authors list if None."""
-        if self.authors is None:
-            self.authors = []
 
 
 def extract_pdf_metadata(pdf_path: str) -> PaperMetadata:
