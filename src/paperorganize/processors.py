@@ -7,8 +7,10 @@ from typing import Protocol
 from urllib.parse import urlparse
 
 import click
+import requests
 
 from .download import download_file, get_download_info
+from .exceptions import HTTPError, NetworkError, ValidationError
 from .input_detection import validate_directory_contains_pdfs
 from .metadata_naming import apply_metadata_naming
 
@@ -116,8 +118,10 @@ class URLProcessor:
                         filename + ".pdf" if not filename.endswith(".pdf") else filename
                     )
 
-        except Exception:
+        except (ValidationError, NetworkError, HTTPError, requests.RequestException):
             # If header check fails, fall back to URL parsing
+            # Header checking is optional - we should never fail filename determination
+            # due to network issues, server errors, or unexpected response formats
             pass
 
         # Fallback: Extract from URL
