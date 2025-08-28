@@ -30,8 +30,9 @@ dependencies = [
     "pypdf>=4.0.0",
     "tqdm>=4.60.0",
     # MIT-licensed replacements for pdf2doi
-    "pdfplumber>=0.9.0",  # Enhanced PDF text extraction
-    "arxiv>=2.1.0",       # Official arXiv API client
+    "pdfplumber>=0.9.0", # Enhanced PDF text extraction
+    "arxiv>=2.1.0", # Official arXiv API client
+    "safety>=3.6.0",
 ]
 
 [project.scripts]
@@ -91,6 +92,10 @@ warn_no_return = true
 warn_unreachable = true
 strict_equality = true
 
+[[tool.uv.index]]
+name = "safety"
+url = "https://pkgs.safetycli.com/repository/none-6f850/project/paper-organize/pypi/simple/"
+default = false
 [project.optional-dependencies]
 test = [
     "pytest>=7.0.0",
