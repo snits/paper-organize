@@ -9,7 +9,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
-from paperorganize.download import calculate_retry_delay, download_file, with_retry
+from paperorganize.download import (
+    _extract_filename_from_content_disposition,
+    _is_pdf_content_type,
+    calculate_retry_delay,
+    download_file,
+    get_download_info,
+    with_retry,
+)
 from paperorganize.exceptions import HTTPError, NetworkError
 
 # Test constants
@@ -548,3 +555,150 @@ def test_download_file_retry_respects_http_errors() -> None:
 
         # Should only be called once (no retries for HTTP errors)
         assert call_count == FIRST_ATTEMPT
+
+
+class TestHeaderProcessing:
+    """Test header processing functionality."""
+
+    def test_is_pdf_content_type_valid_pdf(self) -> None:
+        """Test PDF content type detection with valid PDF type."""
+        mock_response = MagicMock()
+        mock_response.headers = {"content-type": "application/pdf"}
+
+        assert _is_pdf_content_type(mock_response) is True
+
+    def test_is_pdf_content_type_pdf_with_charset(self) -> None:
+        """Test PDF content type detection with charset parameter."""
+        mock_response = MagicMock()
+        mock_response.headers = {"content-type": "application/pdf; charset=utf-8"}
+
+        assert _is_pdf_content_type(mock_response) is True
+
+    def test_is_pdf_content_type_case_insensitive(self) -> None:
+        """Test PDF content type detection is case insensitive."""
+        mock_response = MagicMock()
+        mock_response.headers = {"content-type": "APPLICATION/PDF"}
+
+        assert _is_pdf_content_type(mock_response) is True
+
+    def test_is_pdf_content_type_not_pdf(self) -> None:
+        """Test PDF content type detection with non-PDF type."""
+        mock_response = MagicMock()
+        mock_response.headers = {"content-type": "text/html"}
+
+        assert _is_pdf_content_type(mock_response) is False
+
+    def test_is_pdf_content_type_missing_header(self) -> None:
+        """Test PDF content type detection with missing header."""
+        mock_response = MagicMock()
+        mock_response.headers = {}
+
+        assert _is_pdf_content_type(mock_response) is False
+
+    def test_extract_filename_from_content_disposition_quoted(self) -> None:
+        """Test filename extraction from quoted Content-Disposition header."""
+        mock_response = MagicMock()
+        mock_response.headers = {
+            "content-disposition": 'attachment; filename="document.pdf"'
+        }
+
+        result = _extract_filename_from_content_disposition(mock_response)
+        assert result == "document.pdf"
+
+    def test_extract_filename_from_content_disposition_inline(self) -> None:
+        """Test filename extraction from inline Content-Disposition header."""
+        mock_response = MagicMock()
+        mock_response.headers = {
+            "content-disposition": 'inline; filename="1901.06032v7.pdf"'
+        }
+
+        result = _extract_filename_from_content_disposition(mock_response)
+        assert result == "1901.06032v7.pdf"
+
+    def test_extract_filename_from_content_disposition_unquoted(self) -> None:
+        """Test filename extraction from unquoted Content-Disposition header."""
+        mock_response = MagicMock()
+        mock_response.headers = {
+            "content-disposition": "attachment; filename=simple.pdf"
+        }
+
+        result = _extract_filename_from_content_disposition(mock_response)
+        assert result == "simple.pdf"
+
+    def test_extract_filename_from_content_disposition_single_quotes(self) -> None:
+        """Test filename extraction with single quotes."""
+        mock_response = MagicMock()
+        mock_response.headers = {
+            "content-disposition": "attachment; filename='quoted.pdf'"
+        }
+
+        result = _extract_filename_from_content_disposition(mock_response)
+        assert result == "quoted.pdf"
+
+    def test_extract_filename_from_content_disposition_missing_header(self) -> None:
+        """Test filename extraction with missing Content-Disposition header."""
+        mock_response = MagicMock()
+        mock_response.headers = {}
+
+        result = _extract_filename_from_content_disposition(mock_response)
+        assert result is None
+
+    def test_extract_filename_from_content_disposition_no_filename(self) -> None:
+        """Test filename extraction with Content-Disposition but no filename."""
+        mock_response = MagicMock()
+        mock_response.headers = {"content-disposition": "attachment"}
+
+        result = _extract_filename_from_content_disposition(mock_response)
+        assert result is None
+
+
+class TestGetDownloadInfo:
+    """Test get_download_info functionality."""
+
+    def test_get_download_info_pdf_with_filename(self) -> None:
+        """Test getting download info for PDF with filename in headers."""
+        with patch("paperorganize.download.requests.head") as mock_head:
+            mock_response = MagicMock()
+            mock_response.headers = {
+                "content-type": "application/pdf",
+                "content-disposition": 'inline; filename="paper.pdf"',
+            }
+            mock_head.return_value = mock_response
+
+            suggested_filename, is_pdf_content = get_download_info(
+                "https://example.com/paper"
+            )
+
+            assert suggested_filename == "paper.pdf"
+            assert is_pdf_content is True
+
+    def test_get_download_info_pdf_no_filename(self) -> None:
+        """Test getting download info for PDF without filename in headers."""
+        with patch("paperorganize.download.requests.head") as mock_head:
+            mock_response = MagicMock()
+            mock_response.headers = {"content-type": "application/pdf"}
+            mock_head.return_value = mock_response
+
+            suggested_filename, is_pdf_content = get_download_info(
+                "https://example.com/paper"
+            )
+
+            assert suggested_filename is None
+            assert is_pdf_content is True
+
+    def test_get_download_info_not_pdf(self) -> None:
+        """Test getting download info for non-PDF content."""
+        with patch("paperorganize.download.requests.head") as mock_head:
+            mock_response = MagicMock()
+            mock_response.headers = {
+                "content-type": "text/html",
+                "content-disposition": 'inline; filename="page.html"',
+            }
+            mock_head.return_value = mock_response
+
+            suggested_filename, is_pdf_content = get_download_info(
+                "https://example.com/page"
+            )
+
+            assert suggested_filename == "page.html"
+            assert is_pdf_content is False

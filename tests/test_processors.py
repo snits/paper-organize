@@ -106,7 +106,25 @@ class TestURLProcessor:
 
         # Test URL without PDF extension
         filename = processor._determine_filename(None, "https://example.com/download")
-        assert filename == "paper.pdf"  # Default fallback
+        assert filename == "download.pdf"  # Preserve filename and add .pdf extension
+
+        # Test arXiv URL - should get version from headers if available
+        with patch("paperorganize.processors.get_download_info") as mock_get_info:
+            # Mock successful header response with version number
+            mock_get_info.return_value = ("1901.06032v7.pdf", True)
+            filename = processor._determine_filename(
+                None, "https://arxiv.org/pdf/1901.06032"
+            )
+            assert filename == "1901.06032v7.pdf"  # From Content-Disposition header
+
+        # Test arXiv URL fallback when headers fail
+        with patch("paperorganize.processors.get_download_info") as mock_get_info:
+            # Mock header check failure
+            mock_get_info.side_effect = Exception("Network error")
+            filename = processor._determine_filename(
+                None, "https://arxiv.org/pdf/1901.06032"
+            )
+            assert filename == "1901.06032.pdf"  # Fallback to URL parsing
 
 
 class TestFileProcessor:
