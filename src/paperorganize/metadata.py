@@ -40,8 +40,6 @@ def _is_valid_academic_year(year: int) -> bool:
     return MIN_ACADEMIC_YEAR <= year <= current_year + MAX_YEAR_OFFSET
 
 
-
-
 def extract_pdf_metadata(pdf_path: str) -> PaperMetadata:
     """Extract metadata from PDF using layered approach.
 
