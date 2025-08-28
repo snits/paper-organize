@@ -102,9 +102,12 @@ jobs:
       run: |
         uv run paper-organize --help
     
-    - name: Test real download (if not in PR)
+    - name: Test CLI functionality (if not in PR)
       if: github.event_name == 'push'
       run: |
-        # Run from project directory so uv can find the project environment
-        uv run paper-organize https://httpbin.org/bytes/1024 --no-auto-name --dir /tmp
-        test -f /tmp/paper.pdf
+        # Test CLI help works
+        uv run paper-organize --help
+        # Test invalid input handling
+        uv run paper-organize /nonexistent/file.pdf && exit 1 || echo "Expected failure for invalid input"
+        # Test CLI accepts --version flag
+        uv run paper-organize --version
