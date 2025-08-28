@@ -14,7 +14,7 @@ Coordinates the complete extraction pipeline:
 import logging
 from typing import List
 
-from paperorganize.metadata import PaperMetadata
+from paperorganize.models import PaperMetadata
 
 from .api_clients import ArxivClient, CrossRefClient
 from .pattern_matchers import IdentifierMatch, find_arxiv_patterns, find_doi_patterns

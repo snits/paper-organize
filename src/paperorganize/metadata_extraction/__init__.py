@@ -14,6 +14,6 @@ Public Interface:
     PaperMetadata: Shared metadata structure (re-exported from metadata.py)
 """
 
-from paperorganize.metadata import PaperMetadata
+from paperorganize.models import PaperMetadata
 
 __all__ = ["PaperMetadata"]
