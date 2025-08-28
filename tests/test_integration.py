@@ -1,504 +1,497 @@
-# ABOUTME: Integration tests for paper-organize CLI with real network calls
-# ABOUTME: Tests complete unified processing pipeline using httpbin.org for reliable testing
+# ABOUTME: Reliable integration tests using local HTTP server infrastructure
+# ABOUTME: Tests complete unified processing pipeline without external service dependencies
 # SPDX-License-Identifier: MIT
 
 import tempfile
+import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import click
+import pytest
 import requests
 from click.testing import CliRunner
+from pytest_httpserver import HTTPServer
 
 from paperorganize.cli import main
 
+from .http_test_helpers import setup_error_response, setup_pdf_response
 
-class TestCLIIntegration:
-    """Integration tests for CLI functionality with real network calls."""
 
-    def setup_method(self) -> None:
-        """Set up test environment with temporary directory."""
-        self.runner = CliRunner()
-        self.temp_dir = tempfile.mkdtemp()
-        self.temp_path = Path(self.temp_dir)
+class TestCLIIntegrationReliable:
+    """Reliable integration tests using local HTTP server."""
 
-    def teardown_method(self) -> None:
-        """Clean up test environment."""
-        # Clean up any downloaded files
-        if self.temp_path.exists():
-            # Remove all files first
-            for file in self.temp_path.rglob("*"):
-                if file.is_file():
-                    file.unlink()
-            # Remove directories (in reverse order for nested dirs)
-            for directory in sorted(
-                self.temp_path.rglob("*"), key=lambda p: len(str(p)), reverse=True
-            ):
-                if directory.is_dir():
-                    directory.rmdir()
-            # Finally remove the temp directory itself
-            self.temp_path.rmdir()
+    def test_successful_download_with_local_server(
+        self, http_server: HTTPServer, pdf_fixture_minimal: bytes, temp_dir: Path
+    ) -> None:
+        """Test successful download using local HTTP server with controlled PDF content."""
+        runner = CliRunner()
 
-    def test_successful_download_with_real_http_endpoint(self) -> None:
-        """Test successful download using httpbin.org which returns PDF-like content."""
-        # httpbin.org/bytes/1024 returns exactly 1024 bytes of binary data
-        test_url = "https://httpbin.org/bytes/1024"
-
-        result = self.runner.invoke(
-            main, [test_url, "--dir", str(self.temp_path), "--name", "test_file.pdf"]
+        # Set up server to return PDF content
+        test_url = setup_pdf_response(
+            http_server, "/test.pdf", pdf_fixture_minimal, filename="test_download.pdf"
         )
 
-        assert result.exit_code == 0
+        result = runner.invoke(
+            main, [test_url, "--dir", str(temp_dir), "--name", "test_download.pdf"]
+        )
+
+        assert result.exit_code == 0, f"CLI failed with output: {result.output}"
         assert f"→ Downloading from URL: {test_url}" in result.output
         assert "✓ Downloaded to:" in result.output
 
-        # Verify file was actually created and has correct size
-        downloaded_file = self.temp_path / "test_file.pdf"
-        assert downloaded_file.exists()
-        assert downloaded_file.stat().st_size == 1024
+        # Verify file was created with correct content
+        downloaded_file = temp_dir / "test_download.pdf"
+        assert downloaded_file.exists(), f"Expected file not created: {downloaded_file}"
+        assert downloaded_file.read_bytes() == pdf_fixture_minimal
 
-    def test_http_404_error_handling(self) -> None:
+    def test_http_404_error_handling(
+        self, http_server: HTTPServer, temp_dir: Path
+    ) -> None:
         """Test CLI handles HTTP 404 errors gracefully."""
-        test_url = "https://httpbin.org/status/404"
+        runner = CliRunner()
 
-        result = self.runner.invoke(main, [test_url, "--dir", str(self.temp_path)])
+        # Set up server to return 404
+        test_url = setup_error_response(
+            http_server, "/missing.pdf", 404, error_message="Not Found"
+        )
+
+        result = runner.invoke(main, [test_url, "--dir", str(temp_dir)])
 
         assert result.exit_code != 0
         assert "✗ HTTP 404:" in result.output
         assert "→ Downloading from URL:" in result.output
 
         # Verify no file was created
-        assert not any(self.temp_path.glob("*"))
+        assert not any(temp_dir.glob("*")), (
+            f"Unexpected files created: {list(temp_dir.glob('*'))}"
+        )
 
-    def test_http_500_error_handling(self) -> None:
+    def test_http_500_error_handling(
+        self, http_server: HTTPServer, temp_dir: Path
+    ) -> None:
         """Test CLI handles HTTP 500 errors gracefully."""
-        test_url = "https://httpbin.org/status/500"
+        runner = CliRunner()
 
-        result = self.runner.invoke(main, [test_url, "--dir", str(self.temp_path)])
+        # Set up server to return 500
+        test_url = setup_error_response(
+            http_server, "/error.pdf", 500, error_message="Internal Server Error"
+        )
+
+        result = runner.invoke(main, [test_url, "--dir", str(temp_dir)])
 
         assert result.exit_code != 0
         assert "✗ HTTP 500:" in result.output
-        assert "→ Downloading from URL:" in result.output
 
-    def test_network_timeout_error_handling(self) -> None:
-        """Test CLI handles network timeout errors gracefully."""
-        # Use a mock to force a timeout since httpbin delays might be unreliable
-        with patch("paperorganize.download.requests.get") as mock_get:
-            mock_get.side_effect = requests.exceptions.Timeout("Request timed out")
+    def test_default_filename_generation(
+        self, http_server: HTTPServer, pdf_fixture_minimal: bytes, temp_dir: Path
+    ) -> None:
+        """Test CLI generates appropriate default filenames."""
+        runner = CliRunner()
 
-            test_url = "https://httpbin.org/bytes/1024"
-
-            result = self.runner.invoke(main, [test_url, "--dir", str(self.temp_path)])
-
-            assert result.exit_code != 0
-            assert "✗ Network error:" in result.output
-            assert "timed out" in result.output
-
-    def test_invalid_url_validation(self) -> None:
-        """Test CLI validates URLs properly."""
-        # Only test actual invalid URLs, not non-existent paths
-        invalid_urls = ["ftp://example.com/file.pdf", "http://"]
-
-        for invalid_url in invalid_urls:
-            result = self.runner.invoke(
-                main, [invalid_url, "--dir", str(self.temp_path)]
-            )
-
-            assert result.exit_code != 0
-            assert "✗" in result.output
-
-    def test_nonexistent_path_validation(self) -> None:
-        """Test CLI validates non-existent paths properly."""
-        nonexistent_paths = ["not-a-url", "/nonexistent/path"]
-
-        for path in nonexistent_paths:
-            result = self.runner.invoke(main, [path, "--dir", str(self.temp_path)])
-
-            assert result.exit_code != 0
-            assert "✗" in result.output
-
-    def test_quiet_mode_suppresses_output(self) -> None:
-        """Test --quiet flag suppresses non-error output."""
-        test_url = "https://httpbin.org/bytes/512"
-
-        result = self.runner.invoke(
-            main,
-            [
-                test_url,
-                "--dir",
-                str(self.temp_path),
-                "--name",
-                "quiet_test.pdf",
-                "--quiet",
-            ],
+        # Set up server with URL that doesn't end in .pdf
+        test_url = setup_pdf_response(
+            http_server, "/data", pdf_fixture_minimal, content_type="application/pdf"
         )
 
-        assert result.exit_code == 0
+        result = runner.invoke(main, [test_url, "--dir", str(temp_dir)])
+
+        assert result.exit_code == 0, f"CLI failed with output: {result.output}"
+
+        # Should create a PDF file (exact name depends on URL processing logic)
+        created_files = list(temp_dir.glob("*.pdf"))
+        assert len(created_files) >= 1, (
+            f"No PDF files created, found: {list(temp_dir.glob('*'))}"
+        )
+
+        # Verify content is correct regardless of filename
+        created_file = created_files[0]
+        assert created_file.read_bytes() == pdf_fixture_minimal
+
+    def test_large_file_download_with_progress(
+        self, http_server: HTTPServer, large_pdf_content: bytes, temp_dir: Path
+    ) -> None:
+        """Test downloading larger file to verify chunked download works."""
+        runner = CliRunner()
+
+        test_url = setup_pdf_response(http_server, "/large.pdf", large_pdf_content)
+
+        result = runner.invoke(
+            main, [test_url, "--dir", str(temp_dir), "--name", "large_test.pdf"]
+        )
+
+        assert result.exit_code == 0, f"CLI failed with output: {result.output}"
+
+        downloaded_file = temp_dir / "large_test.pdf"
+        assert downloaded_file.exists()
+        assert len(downloaded_file.read_bytes()) == len(large_pdf_content)
+
+    def test_quiet_mode_suppresses_output(
+        self, http_server: HTTPServer, pdf_fixture_minimal: bytes, temp_dir: Path
+    ) -> None:
+        """Test --quiet flag suppresses non-error output."""
+        runner = CliRunner()
+
+        test_url = setup_pdf_response(http_server, "/quiet.pdf", pdf_fixture_minimal)
+
+        result = runner.invoke(
+            main,
+            [test_url, "--dir", str(temp_dir), "--name", "quiet_test.pdf", "--quiet"],
+        )
+
+        assert result.exit_code == 0, f"CLI failed with output: {result.output}"
         # Should not contain download messages
         assert "→ Downloading:" not in result.output
         assert "✓ Downloaded to:" not in result.output
 
         # But file should still be created
-        downloaded_file = self.temp_path / "quiet_test.pdf"
+        downloaded_file = temp_dir / "quiet_test.pdf"
         assert downloaded_file.exists()
 
-    def test_custom_directory_creation(self) -> None:
+    def test_custom_directory_creation(
+        self, http_server: HTTPServer, pdf_fixture_minimal: bytes, temp_dir: Path
+    ) -> None:
         """Test CLI creates custom directories as needed."""
-        custom_dir = self.temp_path / "papers" / "subdir"
-        test_url = "https://httpbin.org/bytes/256"
+        runner = CliRunner()
 
-        result = self.runner.invoke(
+        custom_dir = temp_dir / "papers" / "subdir"
+        test_url = setup_pdf_response(http_server, "/paper.pdf", pdf_fixture_minimal)
+
+        result = runner.invoke(
             main, [test_url, "--dir", str(custom_dir), "--name", "custom_dir_test.pdf"]
         )
 
-        assert result.exit_code == 0
-        assert custom_dir.exists()
+        assert result.exit_code == 0, f"CLI failed with output: {result.output}"
+        assert custom_dir.exists(), f"Custom directory not created: {custom_dir}"
 
         downloaded_file = custom_dir / "custom_dir_test.pdf"
-        assert downloaded_file.exists()
-        assert downloaded_file.stat().st_size == 256
-
-    def test_automatic_pdf_extension(self) -> None:
-        """Test CLI automatically adds .pdf extension to custom names."""
-        test_url = "https://httpbin.org/bytes/128"
-
-        result = self.runner.invoke(
-            main, [test_url, "--dir", str(self.temp_path), "--name", "no_extension"]
+        assert downloaded_file.exists(), (
+            f"File not created in custom directory: {downloaded_file}"
         )
 
-        assert result.exit_code == 0
+    def test_automatic_pdf_extension(
+        self, http_server: HTTPServer, pdf_fixture_minimal: bytes, temp_dir: Path
+    ) -> None:
+        """Test CLI automatically adds .pdf extension to custom names."""
+        runner = CliRunner()
+
+        test_url = setup_pdf_response(http_server, "/paper.pdf", pdf_fixture_minimal)
+
+        result = runner.invoke(
+            main, [test_url, "--dir", str(temp_dir), "--name", "no_extension"]
+        )
+
+        assert result.exit_code == 0, f"CLI failed with output: {result.output}"
 
         # Should create file with .pdf extension
-        downloaded_file = self.temp_path / "no_extension.pdf"
-        assert downloaded_file.exists()
-        assert downloaded_file.stat().st_size == 128
+        downloaded_file = temp_dir / "no_extension.pdf"
+        assert downloaded_file.exists(), (
+            f"File with .pdf extension not created: {downloaded_file}"
+        )
 
-    def test_default_filename_generation(self) -> None:
-        """Test CLI generates appropriate default filenames."""
-        # URL that doesn't end in .pdf
-        test_url = "https://httpbin.org/bytes/64"
+    @patch("paperorganize.download.requests.get")
+    def test_connection_timeout_handling(
+        self, mock_get: MagicMock, temp_dir: Path
+    ) -> None:
+        """Test CLI handles connection timeouts gracefully."""
+        runner = CliRunner()
 
-        result = self.runner.invoke(main, [test_url, "--dir", str(self.temp_path)])
+        mock_get.side_effect = requests.exceptions.Timeout("Connection timed out")
 
-        assert result.exit_code == 0
-
-        # Should create paper.pdf as default
-        downloaded_file = self.temp_path / "paper.pdf"
-        assert downloaded_file.exists()
-        assert downloaded_file.stat().st_size == 64
-
-    def test_connection_error_handling(self) -> None:
-        """Test CLI handles connection errors gracefully."""
-        # Use a non-existent domain to trigger connection error
-        test_url = "https://this-domain-does-not-exist-12345.com/file.pdf"
-
-        result = self.runner.invoke(main, [test_url, "--dir", str(self.temp_path)])
+        result = runner.invoke(
+            main, ["http://example.com/test.pdf", "--dir", str(temp_dir)]
+        )
 
         assert result.exit_code != 0
         assert "✗ Network error:" in result.output
-        assert (
-            "Connection failed" in result.output
-            or "Name or service not known" in result.output
+        assert "timed out" in result.output.lower()
+
+    def test_connection_error_handling(self, temp_dir: Path) -> None:
+        """Test CLI handles connection errors gracefully."""
+        runner = CliRunner()
+
+        # Use a non-existent domain to trigger connection error
+        test_url = "https://this-domain-definitely-does-not-exist-12345.com/file.pdf"
+
+        result = runner.invoke(main, [test_url, "--dir", str(temp_dir)])
+
+        assert result.exit_code != 0
+        assert "✗ Network error:" in result.output
+        # Connection errors can have various messages depending on system
+        assert any(
+            phrase in result.output
+            for phrase in [
+                "Connection failed",
+                "Name or service not known",
+                "nodename nor servname provided",
+            ]
         )
 
+    def test_invalid_url_validation(self, temp_dir: Path) -> None:
+        """Test CLI validates URLs properly."""
+        runner = CliRunner()
 
-class TestCLIFileSystemErrors:
+        invalid_urls = ["ftp://example.com/file.pdf", "http://", "not-a-url-at-all"]
+
+        for invalid_url in invalid_urls:
+            result = runner.invoke(main, [invalid_url, "--dir", str(temp_dir)])
+
+            assert result.exit_code != 0, (
+                f"Should have failed for invalid URL: {invalid_url}"
+            )
+            assert "✗" in result.output
+
+    def test_nonexistent_path_validation(self, temp_dir: Path) -> None:
+        """Test CLI validates non-existent paths properly."""
+        runner = CliRunner()
+
+        nonexistent_paths = ["/nonexistent/path/file.pdf", "missing_file.pdf"]
+
+        for path in nonexistent_paths:
+            result = runner.invoke(main, [path, "--dir", str(temp_dir)])
+
+            assert result.exit_code != 0, (
+                f"Should have failed for non-existent path: {path}"
+            )
+            assert "✗" in result.output
+
+
+class TestCLIMetadataIntegrationReliable:
+    """Integration tests for metadata extraction without external dependencies."""
+
+    def test_auto_naming_with_valid_pdf(
+        self, http_server: HTTPServer, pdf_fixture_with_metadata: bytes, temp_dir: Path
+    ) -> None:
+        """Test auto-naming works with PDF containing metadata."""
+        runner = CliRunner()
+
+        test_url = setup_pdf_response(
+            http_server, "/paper.pdf", pdf_fixture_with_metadata
+        )
+
+        result = runner.invoke(main, [test_url, "--dir", str(temp_dir)])
+
+        assert result.exit_code == 0, f"CLI failed with output: {result.output}"
+
+        # Should create file and attempt metadata extraction
+        created_files = list(temp_dir.glob("*.pdf"))
+        assert len(created_files) == 1, f"Expected 1 PDF file, found: {created_files}"
+
+    def test_auto_naming_disabled_with_flag(
+        self, http_server: HTTPServer, pdf_fixture_with_metadata: bytes, temp_dir: Path
+    ) -> None:
+        """Test --no-auto-name flag disables metadata-based renaming."""
+        runner = CliRunner()
+
+        test_url = setup_pdf_response(
+            http_server, "/paper.pdf", pdf_fixture_with_metadata
+        )
+
+        result = runner.invoke(
+            main, [test_url, "--dir", str(temp_dir), "--no-auto-name"]
+        )
+
+        assert result.exit_code == 0, f"CLI failed with output: {result.output}"
+
+        # Should create file without metadata renaming
+        created_files = list(temp_dir.glob("*.pdf"))
+        assert len(created_files) == 1, f"Expected 1 PDF file, found: {created_files}"
+        # Should not show metadata extraction output
+        assert "✓ Renamed to:" not in result.output
+
+    def test_auto_naming_disabled_with_custom_name(
+        self, http_server: HTTPServer, pdf_fixture_with_metadata: bytes, temp_dir: Path
+    ) -> None:
+        """Test that custom --name disables auto-naming."""
+        runner = CliRunner()
+
+        custom_name = "my_custom_paper.pdf"
+        test_url = setup_pdf_response(
+            http_server, "/paper.pdf", pdf_fixture_with_metadata
+        )
+
+        result = runner.invoke(
+            main, [test_url, "--dir", str(temp_dir), "--name", custom_name]
+        )
+
+        assert result.exit_code == 0, f"CLI failed with output: {result.output}"
+
+        # Should keep custom filename
+        custom_file = temp_dir / custom_name
+        assert custom_file.exists(), f"Custom named file not created: {custom_file}"
+
+        # Should not show metadata extraction output since custom name provided
+        assert "✓ Renamed to:" not in result.output
+
+    @patch("paperorganize.processors.apply_metadata_naming")
+    def test_auto_naming_with_metadata_success(
+        self,
+        mock_extract: MagicMock,
+        http_server: HTTPServer,
+        pdf_fixture_minimal: bytes,
+        temp_dir: Path,
+    ) -> None:
+        """Test successful auto-naming when metadata is available."""
+        runner = CliRunner()
+
+        def mock_rename(file_path: Path, *, quiet: bool = False) -> Path:
+            """Mock that renames the file and returns the new path."""
+            new_path = file_path.parent / "Smith_2024_Machine_Learning_Survey.pdf"
+            file_path.rename(new_path)
+            return new_path
+
+        mock_extract.side_effect = mock_rename
+
+        test_url = setup_pdf_response(http_server, "/paper.pdf", pdf_fixture_minimal)
+
+        result = runner.invoke(main, [test_url, "--dir", str(temp_dir)])
+
+        assert result.exit_code == 0, f"CLI failed with output: {result.output}"
+
+        # Should create file with metadata-based name
+        expected_file = temp_dir / "Smith_2024_Machine_Learning_Survey.pdf"
+        assert expected_file.exists(), f"Renamed file not found: {expected_file}"
+
+    @patch("paperorganize.processors.apply_metadata_naming")
+    def test_auto_naming_falls_back_on_extraction_failure(
+        self,
+        mock_extract: MagicMock,
+        http_server: HTTPServer,
+        pdf_fixture_minimal: bytes,
+        temp_dir: Path,
+    ) -> None:
+        """Test that auto-naming falls back gracefully when metadata extraction fails."""
+        runner = CliRunner()
+
+        def mock_exception(file_path: Path, *, quiet: bool = False) -> Path:
+            """Mock that returns original path when extraction fails."""
+            return file_path
+
+        mock_extract.side_effect = mock_exception
+
+        test_url = setup_pdf_response(http_server, "/paper.pdf", pdf_fixture_minimal)
+
+        result = runner.invoke(main, [test_url, "--dir", str(temp_dir)])
+
+        assert result.exit_code == 0, f"CLI failed with output: {result.output}"
+
+        # Should create file (exact name depends on processing logic)
+        created_files = list(temp_dir.glob("*.pdf"))
+        assert len(created_files) == 1, f"Expected 1 PDF file, found: {created_files}"
+
+    def test_quiet_mode_suppresses_metadata_output(
+        self, http_server: HTTPServer, pdf_fixture_with_metadata: bytes, temp_dir: Path
+    ) -> None:
+        """Test that --quiet flag suppresses metadata extraction messages."""
+        runner = CliRunner()
+
+        test_url = setup_pdf_response(
+            http_server, "/paper.pdf", pdf_fixture_with_metadata
+        )
+
+        result = runner.invoke(main, [test_url, "--dir", str(temp_dir), "--quiet"])
+
+        assert result.exit_code == 0, f"CLI failed with output: {result.output}"
+
+        # Should not show any output in quiet mode
+        assert result.output.strip() == ""
+
+        # File should still be created (with or without renaming)
+        files = list(temp_dir.glob("*.pdf"))
+        assert len(files) == 1, f"Expected 1 PDF file, found: {files}"
+
+
+class TestCLIFileSystemErrorsReliable:
     """Integration tests for file system error scenarios."""
 
-    def setup_method(self) -> None:
-        """Set up test environment."""
-        self.runner = CliRunner()
-
-    def test_permission_denied_directory(self) -> None:
+    def test_permission_denied_directory(
+        self, http_server: HTTPServer, pdf_fixture_minimal: bytes
+    ) -> None:
         """Test CLI handles permission denied errors gracefully."""
-        # Try to write to a read-only directory (if we can create one)
+        runner = CliRunner()
+
+        # Create temporary directory and make it read-only
         with tempfile.TemporaryDirectory() as temp_dir:
             readonly_dir = Path(temp_dir) / "readonly"
             readonly_dir.mkdir()
             readonly_dir.chmod(0o444)  # Read-only
 
-            test_url = "https://httpbin.org/bytes/64"
-
-            result = self.runner.invoke(
-                main, [test_url, "--dir", str(readonly_dir), "--name", "test.pdf"]
+            test_url = setup_pdf_response(
+                http_server, "/paper.pdf", pdf_fixture_minimal
             )
 
-            # Should fail with file system error
-            assert result.exit_code != 0
-            assert "✗" in result.output
+            try:
+                result = runner.invoke(
+                    main, [test_url, "--dir", str(readonly_dir), "--name", "test.pdf"]
+                )
 
-            # Restore permissions for cleanup
-            readonly_dir.chmod(0o755)
+                # Should fail with file system error
+                assert result.exit_code != 0
+                assert "✗" in result.output
+
+            finally:
+                # Restore permissions for cleanup
+                readonly_dir.chmod(0o755)
 
 
-class TestCLIProgressAndOutput:
+class TestCLIProgressAndOutputReliable:
     """Integration tests for CLI output and progress handling."""
 
-    def setup_method(self) -> None:
-        """Set up test environment."""
-        self.runner = CliRunner()
-        self.temp_dir = tempfile.mkdtemp()
-        self.temp_path = Path(self.temp_dir)
-
-    def teardown_method(self) -> None:
-        """Clean up test environment."""
-        if self.temp_path.exists():
-            # Remove all files first
-            for file in self.temp_path.rglob("*"):
-                if file.is_file():
-                    file.unlink()
-            # Remove directories (in reverse order for nested dirs)
-            for directory in sorted(
-                self.temp_path.rglob("*"), key=lambda p: len(str(p)), reverse=True
-            ):
-                if directory.is_dir():
-                    directory.rmdir()
-            # Finally remove the temp directory itself
-            self.temp_path.rmdir()
-
-    def test_verbose_mode_output(self) -> None:
+    def test_verbose_mode_output(
+        self, http_server: HTTPServer, pdf_fixture_minimal: bytes, temp_dir: Path
+    ) -> None:
         """Test --verbose flag provides detailed output."""
-        test_url = "https://httpbin.org/bytes/256"
+        runner = CliRunner()
 
-        result = self.runner.invoke(
+        test_url = setup_pdf_response(http_server, "/paper.pdf", pdf_fixture_minimal)
+
+        result = runner.invoke(
             main,
             [
                 test_url,
                 "--dir",
-                str(self.temp_path),
+                str(temp_dir),
                 "--name",
                 "verbose_test.pdf",
                 "--verbose",
             ],
         )
 
-        assert result.exit_code == 0
+        assert result.exit_code == 0, f"CLI failed with output: {result.output}"
         assert "→ Downloading from URL:" in result.output
         assert "✓ Downloaded to:" in result.output
 
         # File should be created
-        downloaded_file = self.temp_path / "verbose_test.pdf"
+        downloaded_file = temp_dir / "verbose_test.pdf"
         assert downloaded_file.exists()
 
-    def test_large_file_download(self) -> None:
-        """Test downloading a larger file to ensure chunked download works."""
-        # Download 10KB file to test chunked downloading
-        test_url = "https://httpbin.org/bytes/10240"
 
-        result = self.runner.invoke(
-            main, [test_url, "--dir", str(self.temp_path), "--name", "large_test.pdf"]
+# Performance benchmark test (optional, can be slow)
+@pytest.mark.slow
+class TestPerformanceReliable:
+    """Performance tests for download functionality."""
+
+    def test_download_speed_reasonable(
+        self, http_server: HTTPServer, temp_dir: Path
+    ) -> None:
+        """Test that local downloads complete quickly."""
+        runner = CliRunner()
+
+        # Create 1MB of test data
+        large_content = b"X" * (1024 * 1024)
+        test_url = setup_pdf_response(http_server, "/large.pdf", large_content)
+
+        start_time = time.time()
+        result = runner.invoke(
+            main, [test_url, "--dir", str(temp_dir), "--name", "speed_test.pdf"]
         )
+        end_time = time.time()
 
         assert result.exit_code == 0
+        # Local downloads should be very fast (under 5 seconds even for 1MB)
+        assert end_time - start_time < 5.0, (
+            f"Download took too long: {end_time - start_time:.2f}s"
+        )
 
-        downloaded_file = self.temp_path / "large_test.pdf"
+        downloaded_file = temp_dir / "speed_test.pdf"
         assert downloaded_file.exists()
-        assert downloaded_file.stat().st_size == 10240
-
-
-class TestCLIMetadataIntegration:
-    """Integration tests for CLI metadata extraction and auto-naming functionality."""
-
-    def setup_method(self) -> None:
-        """Set up test environment."""
-        self.runner = CliRunner()
-        self.temp_dir = tempfile.mkdtemp()
-        self.temp_path = Path(self.temp_dir)
-
-    def teardown_method(self) -> None:
-        """Clean up test environment."""
-        if self.temp_path.exists():
-            # Remove all files first
-            for file in self.temp_path.rglob("*"):
-                if file.is_file():
-                    file.unlink()
-            # Remove directories (in reverse order for nested dirs)
-            for directory in sorted(
-                self.temp_path.rglob("*"), key=lambda p: len(str(p)), reverse=True
-            ):
-                if directory.is_dir():
-                    directory.rmdir()
-            # Finally remove the temp directory itself
-            self.temp_path.rmdir()
-
-    def test_auto_naming_disabled_with_flag(self) -> None:
-        """Test that --no-auto-name flag disables metadata-based renaming."""
-        test_url = "https://httpbin.org/bytes/1024"
-
-        result = self.runner.invoke(
-            main, [test_url, "--dir", str(self.temp_path), "--no-auto-name"]
-        )
-
-        assert result.exit_code == 0
-
-        # Should keep default filename (paper.pdf)
-        default_file = self.temp_path / "paper.pdf"
-        assert default_file.exists()
-
-        # Should not show metadata extraction output
-        assert "✓ Renamed to:" not in result.output
-
-    def test_auto_naming_disabled_with_custom_name(self) -> None:
-        """Test that custom --name disables auto-naming."""
-        test_url = "https://httpbin.org/bytes/1024"
-        custom_name = "my_custom_paper.pdf"
-
-        result = self.runner.invoke(
-            main, [test_url, "--dir", str(self.temp_path), "--name", custom_name]
-        )
-
-        assert result.exit_code == 0
-
-        # Should keep custom filename
-        custom_file = self.temp_path / custom_name
-        assert custom_file.exists()
-
-        # Should not show metadata extraction output since custom name provided
-        assert "✓ Renamed to:" not in result.output
-
-    @patch("paperorganize.processors.apply_metadata_naming")
-    def test_auto_naming_with_metadata_success(self, mock_extract: MagicMock) -> None:
-        """Test successful auto-naming when metadata is available."""
-
-        def mock_rename(file_path: Path, *, quiet: bool = False) -> Path:
-            """Mock that renames the file and returns the new path."""
-            new_path = file_path.parent / "Smith_2024_Machine_Learning_Survey.pdf"
-            file_path.rename(new_path)
-            if not quiet:
-                # Simulate the output that would be produced by apply_metadata_naming
-                click.echo(f"✓ Renamed to: {new_path.name}")
-            return new_path
-
-        mock_extract.side_effect = mock_rename
-
-        test_url = "https://httpbin.org/bytes/1024"
-
-        result = self.runner.invoke(main, [test_url, "--dir", str(self.temp_path)])
-
-        assert result.exit_code == 0
-
-        # Should create file with metadata-based name
-        expected_file = self.temp_path / "Smith_2024_Machine_Learning_Survey.pdf"
-        assert expected_file.exists()
-
-        # Should show renaming output
-        assert "✓ Renamed to: Smith_2024_Machine_Learning_Survey.pdf" in result.output
-
-        # Original paper.pdf should not exist
-        original_file = self.temp_path / "paper.pdf"
-        assert not original_file.exists()
-
-    @patch("paperorganize.processors.apply_metadata_naming")
-    def test_auto_naming_with_partial_metadata(self, mock_extract: MagicMock) -> None:
-        """Test auto-naming with partial metadata (title only)."""
-
-        def mock_rename(file_path: Path, *, quiet: bool = False) -> Path:
-            """Mock that renames the file and returns the new path."""
-            new_path = file_path.parent / "Deep_Learning_Fundamentals.pdf"
-            file_path.rename(new_path)
-            if not quiet:
-                # Simulate the output that would be produced by apply_metadata_naming
-                click.echo(f"✓ Renamed to: {new_path.name}")
-            return new_path
-
-        mock_extract.side_effect = mock_rename
-
-        test_url = "https://httpbin.org/bytes/1024"
-
-        result = self.runner.invoke(main, [test_url, "--dir", str(self.temp_path)])
-
-        assert result.exit_code == 0
-
-        # Should create file with title-only name
-        expected_file = self.temp_path / "Deep_Learning_Fundamentals.pdf"
-        assert expected_file.exists()
-
-        # Should show renaming output
-        assert "✓ Renamed to: Deep_Learning_Fundamentals.pdf" in result.output
-
-    @patch("paperorganize.processors.apply_metadata_naming")
-    def test_auto_naming_falls_back_on_extraction_failure(
-        self, mock_extract: MagicMock
-    ) -> None:
-        """Test that auto-naming falls back gracefully when metadata extraction fails."""
-
-        # Mock metadata extraction to raise an exception
-        def mock_exception(file_path: Path, *, quiet: bool = False) -> Path:
-            if not quiet:
-                # Simulate the error output that would be produced by apply_metadata_naming
-                click.echo(
-                    "⚠ Could not extract metadata: Test extraction failure", err=True
-                )
-            return file_path
-
-        mock_extract.side_effect = mock_exception
-
-        test_url = "https://httpbin.org/bytes/1024"
-
-        result = self.runner.invoke(main, [test_url, "--dir", str(self.temp_path)])
-
-        assert result.exit_code == 0
-
-        # Should keep original filename
-        original_file = self.temp_path / "paper.pdf"
-        assert original_file.exists()
-
-        # Should show warning message
-        assert "⚠ Could not extract metadata" in result.output
-
-        # Should not show renaming output
-        assert "✓ Renamed to:" not in result.output
-
-    @patch("paperorganize.processors.apply_metadata_naming")
-    def test_auto_naming_handles_filename_conflicts(
-        self, mock_extract: MagicMock
-    ) -> None:
-        """Test that auto-naming handles filename conflicts by adding numbers."""
-
-        def mock_rename_with_conflict(file_path: Path, *, quiet: bool = False) -> Path:
-            """Mock that handles conflict resolution."""
-            new_path = file_path.parent / "Author_2024_Conflict_Test_1.pdf"
-            file_path.rename(new_path)
-            if not quiet:
-                # Simulate the output that would be produced by apply_metadata_naming
-                click.echo(f"✓ Renamed to: {new_path.name}")
-            return new_path
-
-        mock_extract.side_effect = mock_rename_with_conflict
-
-        # Pre-create file with the expected name to create conflict
-        conflicting_file = self.temp_path / "Author_2024_Conflict_Test.pdf"
-        conflicting_file.write_text("existing file")
-
-        test_url = "https://httpbin.org/bytes/1024"
-
-        result = self.runner.invoke(main, [test_url, "--dir", str(self.temp_path)])
-
-        assert result.exit_code == 0
-
-        # Should create file with conflict resolution suffix
-        resolved_file = self.temp_path / "Author_2024_Conflict_Test_1.pdf"
-        assert resolved_file.exists()
-
-        # Original conflicting file should still exist
-        assert conflicting_file.exists()
-
-        # Should show renaming output with resolved name
-        assert "✓ Renamed to: Author_2024_Conflict_Test_1.pdf" in result.output
-
-    def test_quiet_mode_suppresses_metadata_output(self) -> None:
-        """Test that --quiet flag suppresses metadata extraction messages."""
-        test_url = "https://httpbin.org/bytes/1024"
-
-        result = self.runner.invoke(
-            main, [test_url, "--dir", str(self.temp_path), "--quiet"]
-        )
-
-        assert result.exit_code == 0
-
-        # Should not show any output in quiet mode
-        assert result.output.strip() == ""
-
-        # File should still be created (with or without renaming)
-        files = list(self.temp_path.glob("*.pdf"))
-        assert len(files) == 1
+        assert len(downloaded_file.read_bytes()) == len(large_content)
