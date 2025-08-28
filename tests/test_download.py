@@ -38,7 +38,6 @@ FIRST_FAILURE_MSG = "First failure"
 SECOND_FAILURE_MSG = "Second failure"
 
 
-
 def test_download_file_success() -> None:
     """Test successful file download."""
     with tempfile.TemporaryDirectory() as temp_dir:
