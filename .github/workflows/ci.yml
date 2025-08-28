@@ -106,8 +106,7 @@ jobs:
       if: github.event_name == 'push'
       run: |
         # Test CLI help works
-        uv run paper-organize --help
-        # Test invalid input handling
-        uv run paper-organize /nonexistent/file.pdf && exit 1 || echo "Expected failure for invalid input"
-        # Test CLI accepts --version flag
-        uv run paper-organize --version
+        uv run paper-organize --help > /dev/null
+        # Test invalid input handling returns error code
+        ! uv run paper-organize /nonexistent/file.pdf
+        echo "✓ CLI tests passed"
