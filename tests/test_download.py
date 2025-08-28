@@ -38,25 +38,6 @@ FIRST_FAILURE_MSG = "First failure"
 SECOND_FAILURE_MSG = "Second failure"
 
 
-def test_download_file_basic_functionality() -> None:
-    """Test basic download functionality with real HTTP endpoint."""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        dest_path = Path(temp_dir) / "test_download.bin"
-
-        # Use httpbin.org for reliable testing - download 1KB of random data
-        url = f"https://httpbin.org/bytes/{TEST_FILE_SIZE}"
-
-        download_file(url, str(dest_path))
-        # Verify file was created
-        assert dest_path.exists()
-        # Verify file has expected size (1024 bytes)
-        assert dest_path.stat().st_size == TEST_FILE_SIZE
-        # Verify file contains binary data
-        with dest_path.open("rb") as f:
-            content = f.read()
-            assert len(content) == TEST_FILE_SIZE
-            assert isinstance(content, bytes)
-
 
 def test_download_file_success() -> None:
     """Test successful file download."""

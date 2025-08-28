@@ -185,7 +185,7 @@ def test_cli_respects_papers_dir_env() -> None:
         with patch.dict(os.environ, {"PAPERS_DIR": papers_dir}), patch(
             "paperorganize.processors.download_file"
         ) as mock_download:
-            result = runner.invoke(main, ["https://httpbin.org/bytes/100", "--quiet"])
+            result = runner.invoke(main, ["https://example.com/test.pdf", "--quiet"])
 
             # Should succeed and use our custom directory
             assert result.exit_code == 0
