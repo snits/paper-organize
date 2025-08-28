@@ -70,10 +70,10 @@ jobs:
     - name: Install dependencies
       run: uv sync --extra dev
     
-    - name: Run safety check
-      run: |
-        uv add --dev safety
-        uv run safety scan
+    - name: Run Safety CLI to check for vulnerabilities
+      uses: pyupio/safety-action@v1
+      with:
+        api-key: ${{ secrets.SAFETY_API_KEY }}
     
     - name: Run bandit security check
       run: |
