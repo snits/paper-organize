@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 import click
 
-from .download import download_file
+from .download import download_file, get_download_info
 from .input_detection import validate_directory_contains_pdfs
 from .metadata_naming import apply_metadata_naming
 
@@ -97,11 +97,36 @@ class URLProcessor:
                 filename += ".pdf"
             return filename
 
-        # Extract from URL
+        # Try to get filename from server headers first
+        try:
+            suggested_filename, is_pdf_content = get_download_info(url)
+
+            # If server provides a filename and confirms it's a PDF, use it
+            if suggested_filename and is_pdf_content:
+                if not suggested_filename.endswith(".pdf"):
+                    suggested_filename += ".pdf"
+                return suggested_filename
+
+            # If server confirms it's a PDF but no filename, extract from URL and add .pdf
+            if is_pdf_content:
+                parsed_url = urlparse(url)
+                filename = Path(parsed_url.path).name
+                if filename:
+                    return (
+                        filename + ".pdf" if not filename.endswith(".pdf") else filename
+                    )
+
+        except Exception:
+            # If header check fails, fall back to URL parsing
+            pass
+
+        # Fallback: Extract from URL
         parsed_url = urlparse(url)
         filename = Path(parsed_url.path).name
-        if not filename or not filename.endswith(".pdf"):
+        if not filename:
             filename = "paper.pdf"
+        elif not filename.endswith(".pdf"):
+            filename = filename + ".pdf"
         return filename
 
 
