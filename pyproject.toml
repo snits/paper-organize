@@ -1,6 +1,6 @@
 [project]
 name = "paper-organize"
-version = "1.0.1"
+version = "1.0.2"
 description = "Command-line utility for organizing academic papers with intelligent metadata extraction and descriptive filenames"
 readme = "README.md"
 license = {text = "MIT"}
