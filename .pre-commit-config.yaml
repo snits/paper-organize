@@ -1,0 +1,38 @@
+# ABOUTME: Pre-commit hook configuration for automatic quality gate enforcement
+# ABOUTME: Runs mypy type checking, ruff linting/formatting, and pytest test suite before commits
+
+repos:
+  # Ruff for fast Python linting and formatting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.5
+    hooks:
+      # Run ruff linter
+      - id: ruff
+        name: ruff check
+        args: [--fix]
+        files: ^(src|tests)/.*\.py$
+      # Run ruff formatter  
+      - id: ruff-format
+        name: ruff format
+        files: ^(src|tests)/.*\.py$
+
+  # Local hooks using uv for consistency with development workflow
+  - repo: local
+    hooks:
+      # MyPy type checking
+      - id: mypy
+        name: mypy type checking
+        entry: uv run mypy
+        language: system
+        args: [src/, tests/]
+        files: ^(src|tests)/.*\.py$
+        pass_filenames: false
+        
+      # Full test suite - essential for preventing broken commits
+      - id: pytest
+        name: pytest test suite
+        entry: uv run pytest
+        language: system
+        args: [--tb=short, -x]  # Stop on first failure for faster feedback
+        files: ^(src|tests)/.*\.py$
+        pass_filenames: false
