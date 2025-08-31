@@ -33,8 +33,8 @@ class EnhancedMetadataExtractor:
 
         # Text extractors in fallback order (best to most reliable)
         self.text_extractors: List[PDFTextExtractor] = [
-            PdfPlumberExtractor(),
-            PyPDFExtractor(),
+            PyPDFExtractor(),  # PyPDF works reliably for arXiv ID extraction
+            PdfPlumberExtractor(),  # Fallback (may miss academic identifiers)
         ]
 
     def extract_identifiers_and_enrich(
