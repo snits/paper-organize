@@ -14,12 +14,15 @@ def normalize_url(url: str) -> str:
     """Normalize academic paper URLs to direct download links.
 
     Converts arXiv abstract URLs to PDF download URLs.
+    Strips query strings, fragments, and .html suffixes from arXiv URLs.
     Non-arXiv URLs and non-URL strings pass through unchanged.
     """
+    # Strip query string and fragment for arXiv URLs
+    clean_url = re.split(r"[?#]", url, maxsplit=1)[0]
     return re.sub(
-        r"^(https?://arxiv\.org)/abs/(.+)$",
+        r"^(https?://arxiv\.org)/abs/(.+?)(?:\.html?)?$",
         r"\1/pdf/\2",
-        url,
+        clean_url,
     )
 
 
