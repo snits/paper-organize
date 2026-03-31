@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "server",
+  "dolt_database": "paper_organize",
+  "project_id": "a4145d51-f25f-4057-844b-2861cf8266ed"
+}
