@@ -2,11 +2,25 @@
 # ABOUTME: Determines whether input is URL, file, or directory for unified processing
 # SPDX-License-Identifier: MIT
 
+import re
 from enum import Enum
 from pathlib import Path
 from urllib.parse import urlparse
 
 from .exceptions import ValidationError
+
+
+def normalize_url(url: str) -> str:
+    """Normalize academic paper URLs to direct download links.
+
+    Converts arXiv abstract URLs to PDF download URLs.
+    Non-arXiv URLs and non-URL strings pass through unchanged.
+    """
+    return re.sub(
+        r"^(https?://arxiv\.org)/abs/(.+)$",
+        r"\1/pdf/\2",
+        url,
+    )
 
 
 class InputType(Enum):
