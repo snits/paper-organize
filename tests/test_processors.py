@@ -128,6 +128,27 @@ class TestURLProcessor:
             )
             assert filename == "1901.06032.pdf"  # Fallback to URL parsing
 
+    @patch("paperorganize.processors.download_file")
+    def test_url_processor_normalizes_arxiv_abstract_url(
+        self, mock_download: Any, tmp_path: Path
+    ) -> None:
+        """Test that arXiv abstract URLs are translated to PDF URLs before download."""
+        processor = URLProcessor()
+        url = "https://arxiv.org/abs/2504.21798"
+
+        processor.process(
+            url,
+            tmp_path,
+            "test_paper",
+            auto_name=False,
+            quiet=True,
+        )
+
+        # download_file should receive the translated PDF URL
+        mock_download.assert_called_once()
+        actual_url = mock_download.call_args[0][0]
+        assert actual_url == "https://arxiv.org/pdf/2504.21798"
+
 
 class TestFileProcessor:
     """Test file processing functionality."""

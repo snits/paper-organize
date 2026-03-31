@@ -11,7 +11,7 @@ import requests
 
 from .download import download_file, get_download_info
 from .exceptions import HTTPError, NetworkError, ValidationError
-from .input_detection import validate_directory_contains_pdfs
+from .input_detection import normalize_url, validate_directory_contains_pdfs
 from .metadata_naming import apply_metadata_naming
 
 
@@ -61,15 +61,20 @@ class URLProcessor:
         quiet: bool,
     ) -> list[ProcessingResult]:
         """Download from URL and organize."""
+        # Normalize URL (e.g., arXiv abstract → PDF)
+        url = normalize_url(input_arg)
+
         if not quiet:
-            click.echo(f"→ Downloading from URL: {input_arg}")
+            if url != input_arg:
+                click.echo(f"→ Translated URL: {url}")
+            click.echo(f"→ Downloading from URL: {url}")
 
         # Determine filename
-        filename = self._determine_filename(custom_name, input_arg)
+        filename = self._determine_filename(custom_name, url)
         temp_path = destination_dir / filename
 
         # Download file
-        download_file(input_arg, str(temp_path))
+        download_file(url, str(temp_path))
 
         if not quiet:
             click.echo(f"✓ Downloaded to: {temp_path}")
