@@ -105,6 +105,21 @@ class TestNormalizeUrl:
         result = normalize_url("http://arxiv.org/abs/2504.21798")
         assert result == "http://arxiv.org/pdf/2504.21798"
 
+    def test_arxiv_abstract_with_html_suffix(self) -> None:
+        """Test arXiv abstract URL with .html suffix."""
+        result = normalize_url("https://arxiv.org/abs/2504.21798.html")
+        assert result == "https://arxiv.org/pdf/2504.21798"
+
+    def test_arxiv_abstract_with_query_params(self) -> None:
+        """Test arXiv abstract URL with query parameters."""
+        result = normalize_url("https://arxiv.org/abs/2504.21798?ref=newsletter")
+        assert result == "https://arxiv.org/pdf/2504.21798"
+
+    def test_arxiv_abstract_with_fragment(self) -> None:
+        """Test arXiv abstract URL with fragment."""
+        result = normalize_url("https://arxiv.org/abs/2504.21798#section")
+        assert result == "https://arxiv.org/pdf/2504.21798"
+
     def test_non_arxiv_url_unchanged(self) -> None:
         """Test that non-arXiv URLs pass through unchanged."""
         url = "https://example.com/paper.pdf"
