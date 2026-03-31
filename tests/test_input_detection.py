@@ -8,6 +8,7 @@ from paperorganize.exceptions import ValidationError
 from paperorganize.input_detection import (
     InputType,
     detect_input_type,
+    normalize_url,
     validate_directory_contains_pdfs,
 )
 
@@ -74,6 +75,60 @@ class TestDetectInputType:
             detect_input_type(str(no_ext_file))
 
         assert "File must be a PDF" in str(exc_info.value)
+
+
+class TestNormalizeUrl:
+    """Test URL normalization for academic paper sources."""
+
+    def test_arxiv_abstract_to_pdf(self) -> None:
+        """Test conversion of arXiv abstract URL to PDF URL."""
+        result = normalize_url("https://arxiv.org/abs/2504.21798")
+        assert result == "https://arxiv.org/pdf/2504.21798"
+
+    def test_arxiv_abstract_with_version(self) -> None:
+        """Test arXiv abstract URL with version suffix."""
+        result = normalize_url("https://arxiv.org/abs/2301.00001v3")
+        assert result == "https://arxiv.org/pdf/2301.00001v3"
+
+    def test_arxiv_pdf_url_unchanged(self) -> None:
+        """Test that arXiv PDF URLs pass through unchanged."""
+        url = "https://arxiv.org/pdf/2504.21798"
+        assert normalize_url(url) == url
+
+    def test_arxiv_old_format_abstract(self) -> None:
+        """Test old-style arXiv abstract URL (pre-2007)."""
+        result = normalize_url("https://arxiv.org/abs/cs.AI/0123456")
+        assert result == "https://arxiv.org/pdf/cs.AI/0123456"
+
+    def test_arxiv_http_to_pdf(self) -> None:
+        """Test arXiv abstract URL with http (not https)."""
+        result = normalize_url("http://arxiv.org/abs/2504.21798")
+        assert result == "http://arxiv.org/pdf/2504.21798"
+
+    def test_arxiv_abstract_with_html_suffix(self) -> None:
+        """Test arXiv abstract URL with .html suffix."""
+        result = normalize_url("https://arxiv.org/abs/2504.21798.html")
+        assert result == "https://arxiv.org/pdf/2504.21798"
+
+    def test_arxiv_abstract_with_query_params(self) -> None:
+        """Test arXiv abstract URL with query parameters."""
+        result = normalize_url("https://arxiv.org/abs/2504.21798?ref=newsletter")
+        assert result == "https://arxiv.org/pdf/2504.21798"
+
+    def test_arxiv_abstract_with_fragment(self) -> None:
+        """Test arXiv abstract URL with fragment."""
+        result = normalize_url("https://arxiv.org/abs/2504.21798#section")
+        assert result == "https://arxiv.org/pdf/2504.21798"
+
+    def test_non_arxiv_url_unchanged(self) -> None:
+        """Test that non-arXiv URLs pass through unchanged."""
+        url = "https://example.com/paper.pdf"
+        assert normalize_url(url) == url
+
+    def test_non_url_unchanged(self) -> None:
+        """Test that non-URL strings pass through unchanged."""
+        path = "/home/user/paper.pdf"
+        assert normalize_url(path) == path
 
 
 class TestValidateDirectoryContainsPdfs:
