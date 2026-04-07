@@ -58,53 +58,22 @@ jobs:
         name: dist
         path: dist/
 
-  publish:
-    needs: build
-    runs-on: ubuntu-latest
-    environment: release
-    permissions:
-      id-token: write  # For trusted PyPI publishing
-    steps:
-    - name: Download artifacts
-      uses: actions/download-artifact@v5
-      with:
-        name: dist
-        path: dist/
-    
-    - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      # This uses OpenID Connect for secure publishing without API tokens
-
   github-release:
-    needs: publish
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
     - uses: actions/checkout@v5
-    
+
     - name: Download artifacts
       uses: actions/download-artifact@v5
       with:
         name: dist
         path: dist/
-    
+
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
         files: dist/*
         generate_release_notes: true
-        body: |
-          ## What's Changed
-          
-          See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for detailed changes.
-          
-          ## Installation
-          
-          ```bash
-          pip install paper-organize==${{ github.ref_name }}
-          ```
-          
-          ## Full Changelog
-          
-          **Full Changelog**: https://github.com/${{ github.repository }}/compare/v${{ github.event.before }}...${{ github.ref_name }}
