@@ -111,3 +111,4 @@ temp/
 .dolt/
 *.db
 .beads-credential-key
+**/session-handoff.md
