@@ -112,3 +112,4 @@ temp/
 *.db
 .beads-credential-key
 **/session-handoff.md
+.kata.local.toml
